@@ -21,7 +21,7 @@ export const Testimonials = () => {
       id: 3,
       name: 'Raj Patel',
       role: 'Amateur Player',
-      quote: 'Booking is straightforward and the pitches are top-notch. I've been bringing my friends here regularly for friendly matches and we always have a great experience.',
+      quote: "Booking is straightforward and the pitches are top-notch. I've been bringing my friends here regularly for friendly matches and we always have a great experience.",
       image: 'https://i.pravatar.cc/150?img=59'
     }
   ];
