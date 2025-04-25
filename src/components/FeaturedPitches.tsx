@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -25,7 +24,7 @@ export const FeaturedPitches = () => {
       id: 3,
       title: 'Casual Play Pitch',
       description: 'Perfect for casual games and beginners looking to enjoy cricket indoors.',
-      image: 'https://images.unsplash.com/photo-1624765434852-66678c237697?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
       price: '£35/hour',
       features: ['Basic equipment provided', 'Flexible booking', 'Suitable for beginners']
     }

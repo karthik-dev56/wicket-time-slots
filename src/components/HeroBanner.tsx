@@ -22,7 +22,7 @@ export const HeroBanner = () => {
             <Button asChild size="lg" className="bg-cricket-yellow text-cricket-dark hover:brightness-110 btn-bounce">
               <Link to="/booking">Book a Pitch</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-cricket-dark">
+            <Button asChild size="lg" className="bg-cricket-yellow text-cricket-dark hover:brightness-110">
               <Link to="/pitches">Explore Our Facilities</Link>
             </Button>
           </div>
