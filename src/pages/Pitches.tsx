@@ -10,7 +10,7 @@ const Pitches = () => {
       id: 1,
       title: 'Premium Match Pitch',
       description: 'Professional-grade cricket pitch with electronic scoreboard and spectator seating. Ideal for league matches and tournaments.',
-      image: 'https://images.unsplash.com/photo-1621495488134-8232b686972d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
       price: '£75/hour',
       features: [
         'Electronic scoreboard',
@@ -25,7 +25,7 @@ const Pitches = () => {
       id: 2,
       title: 'Training Pitch',
       description: 'Ideal for practice sessions and coaching with bowling machines available. Perfect for teams looking to improve their skills.',
-      image: 'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
       price: '£50/hour',
       features: [
         'Bowling machines',
@@ -40,7 +40,7 @@ const Pitches = () => {
       id: 3,
       title: 'Casual Play Pitch',
       description: 'Perfect for casual games and beginners looking to enjoy cricket indoors. Affordable option for friendly matches and recreational play.',
-      image: 'https://images.unsplash.com/photo-1625401586060-3971d4ff299c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://images.unsplash.com/photo-1624765434852-66678c237697?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
       price: '£35/hour',
       features: [
         'Basic equipment provided',
@@ -55,7 +55,7 @@ const Pitches = () => {
       id: 4,
       title: 'Junior Development Pitch',
       description: 'Specially designed for young cricketers aged 7-15. Child-friendly equipment and simplified playing area to develop core skills.',
-      image: 'https://images.unsplash.com/photo-1580748141085-5f6e0fef9318?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://images.unsplash.com/photo-1587397845856-e6cf49176c70?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
       price: '£30/hour',
       features: [
         'Child-sized equipment',
