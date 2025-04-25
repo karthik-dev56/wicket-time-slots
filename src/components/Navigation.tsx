@@ -1,11 +1,47 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <header className="w-full bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
@@ -31,9 +67,24 @@ export const Navigation = () => {
           <Link to="/contact" className="text-cricket-dark hover:text-cricket-green transition-colors font-medium">
             Contact
           </Link>
-          <Button asChild variant="default" className="bg-cricket-green hover:bg-cricket-green-light ml-2">
-            <Link to="/login">Sign In</Link>
-          </Button>
+          {user ? (
+            <>
+              <Button asChild variant="default" className="bg-cricket-green hover:bg-cricket-green-light">
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleSignOut}
+                className="border-cricket-green text-cricket-green hover:bg-cricket-green hover:text-white"
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Button asChild variant="default" className="bg-cricket-green hover:bg-cricket-green-light">
+              <Link to="/auth">Sign In</Link>
+            </Button>
+          )}
         </nav>
         
         {/* Mobile Menu Button */}
@@ -77,14 +128,37 @@ export const Navigation = () => {
             >
               Contact
             </Link>
-            <Button 
-              asChild 
-              variant="default" 
-              className="bg-cricket-green hover:bg-cricket-green-light w-full mt-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <Link to="/login">Sign In</Link>
-            </Button>
+            {user ? (
+              <>
+                <Button 
+                  asChild 
+                  variant="default" 
+                  className="bg-cricket-green hover:bg-cricket-green-light w-full"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full border-cricket-green text-cricket-green hover:bg-cricket-green hover:text-white"
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Button 
+                asChild 
+                variant="default" 
+                className="bg-cricket-green hover:bg-cricket-green-light w-full"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </nav>
         </div>
       )}
