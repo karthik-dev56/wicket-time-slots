@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -166,10 +165,10 @@ const Booking = () => {
                   <div className="pt-2">
                     <p className="text-sm text-gray-500">Estimated Price</p>
                     <p className="font-bold text-xl text-cricket-green">
-                      {pitchType === 'premium' && '£75.00'}
-                      {pitchType === 'training' && '£50.00'}
-                      {pitchType === 'casual' && '£35.00'}
-                      {!pitchType && '£0.00'}
+                      {pitchType === 'premium' && '$75.00'}
+                      {pitchType === 'training' && '$50.00'}
+                      {pitchType === 'casual' && '$35.00'}
+                      {!pitchType && '$0.00'}
                     </p>
                   </div>
                 </CardContent>
