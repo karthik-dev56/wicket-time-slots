@@ -11,7 +11,7 @@ const Pitches = () => {
       title: 'Premium Match Pitch',
       description: 'Professional-grade cricket pitch with electronic scoreboard and spectator seating. Ideal for league matches and tournaments.',
       image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '₹6,000/hour',
+      price: '$75/hour',
       features: [
         'Electronic scoreboard',
         'Spectator seating',
@@ -26,7 +26,7 @@ const Pitches = () => {
       title: 'Training Pitch',
       description: 'Ideal for practice sessions and coaching with bowling machines available. Perfect for teams looking to improve their skills.',
       image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '₹4,000/hour',
+      price: '$50/hour',
       features: [
         'Bowling machines',
         'Video analysis',
@@ -41,7 +41,7 @@ const Pitches = () => {
       title: 'Casual Play Pitch',
       description: 'Perfect for casual games and beginners looking to enjoy cricket indoors. Affordable option for friendly matches and recreational play.',
       image: 'https://images.unsplash.com/photo-1624765434852-66678c237697?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '₹2,800/hour',
+      price: '$35/hour',
       features: [
         'Basic equipment provided',
         'Flexible booking',
@@ -56,7 +56,7 @@ const Pitches = () => {
       title: 'Junior Development Pitch',
       description: 'Specially designed for young cricketers aged 7-15. Child-friendly equipment and simplified playing area to develop core skills.',
       image: 'https://images.unsplash.com/photo-1587397845856-e6cf49176c70?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '₹2,400/hour',
+      price: '$30/hour',
       features: [
         'Child-sized equipment',
         'Safe playing environment',

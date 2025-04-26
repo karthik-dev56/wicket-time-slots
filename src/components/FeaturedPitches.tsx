@@ -10,7 +10,7 @@ export const FeaturedPitches = () => {
       title: 'Premium Match Pitch',
       description: 'Professional-grade cricket pitch with electronic scoreboard and spectator seating.',
       image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '₹6,000/hour',
+      price: '$75/hour',
       features: ['Electronic scoreboard', 'Spectator seating', 'Match-quality pitch']
     },
     {
@@ -18,7 +18,7 @@ export const FeaturedPitches = () => {
       title: 'Training Pitch',
       description: 'Ideal for practice sessions and coaching with bowling machines available.',
       image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '₹4,000/hour',
+      price: '$50/hour',
       features: ['Bowling machines', 'Video analysis', 'Training equipment']
     },
     {
@@ -26,7 +26,7 @@ export const FeaturedPitches = () => {
       title: 'Casual Play Pitch',
       description: 'Perfect for casual games and beginners looking to enjoy cricket indoors.',
       image: 'https://images.unsplash.com/photo-1624765434852-66678c237697?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '₹2,800/hour',
+      price: '$35/hour',
       features: ['Basic equipment provided', 'Flexible booking', 'Suitable for beginners']
     }
   ];
