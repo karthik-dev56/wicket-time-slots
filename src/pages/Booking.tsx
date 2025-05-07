@@ -21,13 +21,28 @@ const PRICES = {
   casual: 3500 // $35.00 in cents
 };
 
+// Define price IDs from Stripe dashboard
+const PRICE_IDS = {
+  premium: 'price_1RJJYvFWkFThYC8L5j9jYX8Z',
+  training: 'price_1RJJZvFWkFThYC8LX9j2YxZ9',
+  casual: 'price_1RJJaRFWkFThYC8L5j9jYX8Z'
+};
+
 const Booking = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [pitchType, setPitchType] = useState<string>("");
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [stripeError, setStripeError] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Clear any previous stripe errors when form fields change
+    if (stripeError) {
+      setStripeError("");
+    }
+  }, [date, pitchType, timeSlot]);
 
   const validateBooking = () => {
     if (!date || !pitchType || !timeSlot) {
@@ -46,6 +61,7 @@ const Booking = () => {
     
     try {
       setIsLoading(true);
+      setStripeError("");
       
       // Load Stripe instance
       const stripe = await stripePromise;
@@ -54,30 +70,18 @@ const Booking = () => {
         throw new Error('Stripe failed to initialize');
       }
 
-      // Format the booking details
-      const bookingDetails = {
-        pitchType,
-        date: date ? format(date, 'yyyy-MM-dd') : '',
-        timeSlot,
-        amount: PRICES[pitchType as keyof typeof PRICES]
-      };
+      // Get the price ID for the selected pitch type
+      const priceId = PRICE_IDS[pitchType as keyof typeof PRICE_IDS];
       
-      // Create a session ID for premium pitch type
-      let sessionId: string | undefined;
-      if (pitchType === 'premium') {
-        sessionId = 'price_1RJJYvFWkFThYC8L5j9jYX8Z'; // Use a pre-created price ID for premium
-      } else if (pitchType === 'training') {
-        sessionId = 'price_1RJJZvFWkFThYC8LX9j2YxZ9'; // Use a pre-created price ID for training
-      } else if (pitchType === 'casual') {
-        sessionId = 'price_1RJJaRFWkFThYC8L5j9jYX8Z'; // Use a pre-created price ID for casual
+      if (!priceId) {
+        throw new Error('Invalid pitch type selected');
       }
       
-      // In a production environment, you'd create a checkout session through your backend
-      // For this demo using Stripe's client-only checkout
+      // Create a checkout session
       const { error } = await stripe.redirectToCheckout({
         lineItems: [
           {
-            price: sessionId, // Use the price ID from Stripe dashboard
+            price: priceId,
             quantity: 1,
           },
         ],
@@ -87,10 +91,11 @@ const Booking = () => {
       });
       
       if (error) {
-        throw error;
+        console.error('Stripe checkout error:', error);
+        throw new Error(error.message);
       }
-
-      // If we can't create a session directly, fall back to simulated checkout for demo
+      
+      // This code will only run if redirectToCheckout fails to redirect
       console.log('Falling back to simulated checkout (this would be a real API call in production)');
       setTimeout(() => {
         navigate('/booking-success');
@@ -98,6 +103,7 @@ const Booking = () => {
       
     } catch (error: any) {
       console.error('Payment error:', error);
+      setStripeError(error.message || 'There was a problem processing your payment');
       toast({
         title: "Payment Error",
         description: "There was a problem processing your payment. Please try again.",
@@ -193,6 +199,12 @@ const Booking = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {stripeError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                      <p>Payment Error: {stripeError}</p>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button 
