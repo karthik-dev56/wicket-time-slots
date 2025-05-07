@@ -9,6 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { loadStripe } from '@stripe/stripe-js';
+import { useNavigate } from 'react-router-dom';
 
 // Initialize Stripe with the publishable key
 const stripePromise = loadStripe('pk_test_51RJJXrFWkFThYC8LLSMlWDABBnNh1gyzAx9SS7EE8mn7B9EMCpTQMnvS1JlTiItgMqPcEFtFUBdfkkdiduoYSKYO00NqWdSLCn');
@@ -26,6 +27,7 @@ const Booking = () => {
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const validateBooking = () => {
     if (!date || !pitchType || !timeSlot) {
@@ -46,43 +48,26 @@ const Booking = () => {
       setIsLoading(true);
       
       // In a real application, this would be an API call to your backend
-      // which would create a Stripe checkout session and return the session ID
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pitchType,
-          date: format(date, 'yyyy-MM-dd'),
-          timeSlot,
-          amount: PRICES[pitchType as keyof typeof PRICES]
-        }),
-      });
+      // For demo purposes, we'll simulate a successful payment and redirect
+      setTimeout(() => {
+        // Redirect to success page
+        navigate('/booking-success');
+      }, 1500);
       
-      // Since we don't have a real backend in this demo, we're simulating the response
-      // In a real application, this would come from your server
+      /* Real Stripe implementation would be:
       const stripe = await stripePromise;
       
       if (!stripe) {
         throw new Error('Stripe failed to initialize');
       }
       
-      // Demo: Directly redirect to Stripe checkout for demonstration
-      // In a real app, you'd use the session ID from your backend
+      // This part had an error with the lineItems structure
       const { error } = await stripe.redirectToCheckout({
         lineItems: [
           {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: `${pitchType.charAt(0).toUpperCase() + pitchType.slice(1)} Cricket Pitch`,
-                description: `Booking for ${format(date, 'PPP')} at ${timeSlot}`,
-              },
-              unit_amount: PRICES[pitchType as keyof typeof PRICES],
-            },
-            quantity: 1,
-          },
+            price: 'price_ID_from_stripe_dashboard', // You would need to create these price IDs in Stripe
+            quantity: 1
+          }
         ],
         mode: 'payment',
         successUrl: window.location.origin + '/booking-success',
@@ -92,6 +77,7 @@ const Booking = () => {
       if (error) {
         throw error;
       }
+      */
       
     } catch (error) {
       console.error('Payment error:', error);
