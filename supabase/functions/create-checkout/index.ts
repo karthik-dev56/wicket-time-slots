@@ -8,11 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Define price mapping
-const PRICE_IDS = {
-  premium: 'price_1RJJYvFWkFThYC8L5j9jYX8Z',
-  training: 'price_1RJJZvFWkFThYC8LX9j2YxZ9',
-  casual: 'price_1RJJaRFWkFThYC8L5j9jYX8Z'
+// Define price mapping for direct price creation
+const PRICES = {
+  premium: 7500, // $75.00 in cents
+  training: 5000, // $50.00 in cents
+  casual: 3500 // $35.00 in cents
 };
 
 serve(async (req) => {
@@ -33,17 +33,28 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
     
-    // Get the price ID for the selected pitch type
-    const priceId = PRICE_IDS[pitchType as keyof typeof PRICE_IDS];
-    if (!priceId) {
+    // Get the price amount for the selected pitch type
+    const priceAmount = PRICES[pitchType as keyof typeof PRICES];
+    if (!priceAmount) {
       throw new Error("Invalid pitch type selected");
     }
     
-    // Create a Checkout session
+    // Format the pitch name for display
+    const pitchName = pitchType.charAt(0).toUpperCase() + pitchType.slice(1) + " Cricket Pitch";
+    
+    // Create a Checkout session with inline price creation
     const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
       line_items: [
         {
-          price: priceId,
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: pitchName,
+              description: `Booking for ${date} at ${timeSlot}`,
+            },
+            unit_amount: priceAmount,
+          },
           quantity: 1,
         },
       ],
