@@ -62,31 +62,35 @@ const Booking = () => {
         amount: PRICES[pitchType as keyof typeof PRICES]
       };
       
-      // In a production environment, create a checkout session through your backend
-      // For this demo, we'll create a direct checkout session
-      const result = await stripe.redirectToCheckout({
-        lineItems: [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `${pitchType.charAt(0).toUpperCase() + pitchType.slice(1)} Cricket Pitch`,
-              description: `Booking for ${format(date as Date, 'PPP')} at ${timeSlot}`,
-            },
-            unit_amount: PRICES[pitchType as keyof typeof PRICES],
+      // Create a session ID for premium pitch type
+      let sessionId: string | undefined;
+      if (pitchType === 'premium') {
+        sessionId = 'price_1RJJYvFWkFThYC8L5j9jYX8Z'; // Use a pre-created price ID for premium
+      } else if (pitchType === 'training') {
+        sessionId = 'price_1RJJZvFWkFThYC8LX9j2YxZ9'; // Use a pre-created price ID for training
+      } else if (pitchType === 'casual') {
+        sessionId = 'price_1RJJaRFWkFThYC8L5j9jYX8Z'; // Use a pre-created price ID for casual
+      }
+      
+      // In a production environment, you'd create a checkout session through your backend
+      // For this demo using Stripe's client-only checkout
+      const { error } = await stripe.redirectToCheckout({
+        lineItems: [
+          {
+            price: sessionId, // Use the price ID from Stripe dashboard
+            quantity: 1,
           },
-          quantity: 1,
-        }],
+        ],
         mode: 'payment',
         successUrl: `${window.location.origin}/booking-success`,
         cancelUrl: `${window.location.origin}/booking`,
       });
       
-      if (result.error) {
-        throw result.error;
+      if (error) {
+        throw error;
       }
 
-      // If we can't create a session directly (which is expected in client-side only),
-      // fall back to simulated checkout for demo
+      // If we can't create a session directly, fall back to simulated checkout for demo
       console.log('Falling back to simulated checkout (this would be a real API call in production)');
       setTimeout(() => {
         navigate('/booking-success');
