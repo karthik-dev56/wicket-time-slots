@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,32 +8,101 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Initialize Stripe with the publishable key
+const stripePromise = loadStripe('pk_test_51RJJXrFWkFThYC8LLSMlWDABBnNh1gyzAx9SS7EE8mn7B9EMCpTQMnvS1JlTiItgMqPcEFtFUBdfkkdiduoYSKYO00NqWdSLCn');
+
+// Define price mapping
+const PRICES = {
+  premium: 7500, // $75.00 in cents
+  training: 5000, // $50.00 in cents
+  casual: 3500 // $35.00 in cents
+};
 
 const Booking = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [pitchType, setPitchType] = useState<string>("");
   const [timeSlot, setTimeSlot] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const handleBookingSubmit = () => {
+  const validateBooking = () => {
     if (!date || !pitchType || !timeSlot) {
       toast({
         title: "Please complete all fields",
         description: "You need to select a date, pitch type, and time slot.",
         variant: "destructive"
       });
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleBookingSubmit = async () => {
+    if (!validateBooking()) return;
     
-    toast({
-      title: "Booking Request Submitted",
-      description: `Your booking for ${pitchType} on ${format(date, 'PPP')} at ${timeSlot} has been received.`,
-    });
-    
-    // Reset form
-    setDate(undefined);
-    setPitchType("");
-    setTimeSlot("");
+    try {
+      setIsLoading(true);
+      
+      // In a real application, this would be an API call to your backend
+      // which would create a Stripe checkout session and return the session ID
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pitchType,
+          date: format(date, 'yyyy-MM-dd'),
+          timeSlot,
+          amount: PRICES[pitchType as keyof typeof PRICES]
+        }),
+      });
+      
+      // Since we don't have a real backend in this demo, we're simulating the response
+      // In a real application, this would come from your server
+      const stripe = await stripePromise;
+      
+      if (!stripe) {
+        throw new Error('Stripe failed to initialize');
+      }
+      
+      // Demo: Directly redirect to Stripe checkout for demonstration
+      // In a real app, you'd use the session ID from your backend
+      const { error } = await stripe.redirectToCheckout({
+        lineItems: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `${pitchType.charAt(0).toUpperCase() + pitchType.slice(1)} Cricket Pitch`,
+                description: `Booking for ${format(date, 'PPP')} at ${timeSlot}`,
+              },
+              unit_amount: PRICES[pitchType as keyof typeof PRICES],
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        successUrl: window.location.origin + '/booking-success',
+        cancelUrl: window.location.origin + '/booking',
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Error",
+        description: "There was a problem processing your payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const timeSlots = [
@@ -76,9 +146,9 @@ const Booking = () => {
                         <SelectValue placeholder="Select a pitch type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="premium">Premium Match Pitch (£75/hour)</SelectItem>
-                        <SelectItem value="training">Training Pitch (£50/hour)</SelectItem>
-                        <SelectItem value="casual">Casual Play Pitch (£35/hour)</SelectItem>
+                        <SelectItem value="premium">Premium Match Pitch ($75.00/hour)</SelectItem>
+                        <SelectItem value="training">Training Pitch ($50.00/hour)</SelectItem>
+                        <SelectItem value="casual">Casual Play Pitch ($35.00/hour)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -125,8 +195,9 @@ const Booking = () => {
                   <Button 
                     className="w-full bg-cricket-green hover:bg-cricket-green-light" 
                     onClick={handleBookingSubmit}
+                    disabled={isLoading}
                   >
-                    Continue to Payment
+                    {isLoading ? 'Processing...' : 'Continue to Payment'}
                   </Button>
                 </CardFooter>
               </Card>
