@@ -8,11 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { loadStripe } from '@stripe/stripe-js';
 import { useNavigate } from 'react-router-dom';
-
-// Initialize Stripe with the publishable key
-const stripePromise = loadStripe('pk_test_51RJJXrFWkFThYC8LLSMlWDABBnNh1gyzAx9SS7EE8mn7B9EMCpTQMnvS1JlTiItgMqPcEFtFUBdfkkdiduoYSKYO00NqWdSLCn');
+import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 // Define price mapping
 const PRICES = {
@@ -21,28 +20,21 @@ const PRICES = {
   casual: 3500 // $35.00 in cents
 };
 
-// Define price IDs from Stripe dashboard
-const PRICE_IDS = {
-  premium: 'price_1RJJYvFWkFThYC8L5j9jYX8Z',
-  training: 'price_1RJJZvFWkFThYC8LX9j2YxZ9',
-  casual: 'price_1RJJaRFWkFThYC8L5j9jYX8Z'
-};
-
 const Booking = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [pitchType, setPitchType] = useState<string>("");
   const [timeSlot, setTimeSlot] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [stripeError, setStripeError] = useState<string>("");
+  const [bookingError, setBookingError] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Clear any previous stripe errors when form fields change
-    if (stripeError) {
-      setStripeError("");
+    // Clear any previous errors when form fields change
+    if (bookingError) {
+      setBookingError("");
     }
-  }, [date, pitchType, timeSlot]);
+  }, [date, pitchType, timeSlot, bookingError]);
 
   const validateBooking = () => {
     if (!date || !pitchType || !timeSlot) {
@@ -61,49 +53,33 @@ const Booking = () => {
     
     try {
       setIsLoading(true);
-      setStripeError("");
+      setBookingError("");
       
-      // Load Stripe instance
-      const stripe = await stripePromise;
+      const formattedDate = date ? format(date, 'yyyy-MM-dd') : '';
       
-      if (!stripe) {
-        throw new Error('Stripe failed to initialize');
-      }
-
-      // Get the price ID for the selected pitch type
-      const priceId = PRICE_IDS[pitchType as keyof typeof PRICE_IDS];
-      
-      if (!priceId) {
-        throw new Error('Invalid pitch type selected');
-      }
-      
-      // Create a checkout session
-      const { error } = await stripe.redirectToCheckout({
-        lineItems: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        successUrl: `${window.location.origin}/booking-success`,
-        cancelUrl: `${window.location.origin}/booking`,
+      // Call our Supabase Edge Function to create a checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          pitchType,
+          date: formattedDate,
+          timeSlot,
+        },
       });
       
       if (error) {
-        console.error('Stripe checkout error:', error);
-        throw new Error(error.message);
+        throw new Error(error.message || 'Error creating checkout session');
       }
       
-      // This code will only run if redirectToCheckout fails to redirect
-      console.log('Falling back to simulated checkout (this would be a real API call in production)');
-      setTimeout(() => {
-        navigate('/booking-success');
-      }, 1500);
+      if (!data?.url) {
+        throw new Error('No checkout URL returned from server');
+      }
+      
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
       
     } catch (error: any) {
       console.error('Payment error:', error);
-      setStripeError(error.message || 'There was a problem processing your payment');
+      setBookingError(error.message || 'There was a problem processing your payment');
       toast({
         title: "Payment Error",
         description: "There was a problem processing your payment. Please try again.",
@@ -200,10 +176,12 @@ const Booking = () => {
                     </Select>
                   </div>
                   
-                  {stripeError && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                      <p>Payment Error: {stripeError}</p>
-                    </div>
+                  {bookingError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {bookingError}
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </CardContent>
                 <CardFooter>
@@ -212,7 +190,12 @@ const Booking = () => {
                     onClick={handleBookingSubmit}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Processing...' : 'Continue to Payment'}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : 'Continue to Payment'}
                   </Button>
                 </CardFooter>
               </Card>
