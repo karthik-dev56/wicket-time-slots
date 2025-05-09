@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,59 +7,182 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { MembershipStatus } from '@/components/MembershipStatus';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
+
+type BookingType = {
+  id: string;
+  pitch_type: string;
+  date: string;
+  time: string;
+  price: number;
+  status: string;
+  booking_date: string;
+};
+
+type UserProfileType = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  member_since: string | null;
+  avatar_url: string | null;
+};
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const [upcomingBookings, setUpcomingBookings] = useState<BookingType[]>([]);
+  const [pastBookings, setPastBookings] = useState<BookingType[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data?.user || null);
+    };
+
+    getUser();
+
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchBookings();
+      fetchUserProfile();
+    } else {
+      setIsLoadingBookings(false);
+      setIsLoadingProfile(false);
+    }
+  }, [user]);
+
+  const fetchBookings = async () => {
+    try {
+      setIsLoadingBookings(true);
+      
+      // Get current date in ISO format
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Fetch upcoming bookings (today and future)
+      const { data: upcomingData, error: upcomingError } = await supabase
+        .from('bookings')
+        .select('*')
+        .gte('date', today)
+        .order('date', { ascending: true });
+      
+      if (upcomingError) throw upcomingError;
+      
+      // Fetch past bookings
+      const { data: pastData, error: pastError } = await supabase
+        .from('bookings')
+        .select('*')
+        .lt('date', today)
+        .order('date', { ascending: false });
+      
+      if (pastError) throw pastError;
+      
+      setUpcomingBookings(upcomingData || []);
+      setPastBookings(pastData || []);
+    } catch (error: any) {
+      console.error('Error fetching bookings:', error);
+      toast({
+        title: "Failed to load bookings",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingBookings(false);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      setIsLoadingProfile(true);
+      
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      setUserProfile(data);
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+      toast({
+        title: "Failed to load profile",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
   
-  const handleCancelBooking = () => {
-    toast({
-      title: "Booking Cancelled",
-      description: "Your booking has been successfully cancelled.",
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', bookingId);
+      
+      if (error) throw error;
+      
+      // Update local state to reflect the change
+      setUpcomingBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: 'cancelled' } 
+            : booking
+        )
+      );
+      
+      toast({
+        title: "Booking Cancelled",
+        description: "Your booking has been successfully cancelled.",
+      });
+    } catch (error: any) {
+      console.error('Error cancelling booking:', error);
+      toast({
+        title: "Failed to cancel booking",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
-  // Sample upcoming bookings data
-  const upcomingBookings = [
-    {
-      id: 1,
-      pitchType: 'Premium Match Pitch',
-      date: 'May 15, 2023',
-      time: '3:00 PM - 4:00 PM',
-      price: '£75.00'
-    },
-    {
-      id: 2,
-      pitchType: 'Training Pitch',
-      date: 'May 22, 2023',
-      time: '5:00 PM - 6:00 PM',
-      price: '£50.00'
-    }
-  ];
-  
-  // Sample past bookings data
-  const pastBookings = [
-    {
-      id: 101,
-      pitchType: 'Casual Play Pitch',
-      date: 'April 30, 2023',
-      time: '2:00 PM - 3:00 PM',
-      price: '£35.00'
-    },
-    {
-      id: 102,
-      pitchType: 'Premium Match Pitch',
-      date: 'April 25, 2023',
-      time: '6:00 PM - 7:00 PM',
-      price: '£75.00'
-    },
-    {
-      id: 103,
-      pitchType: 'Training Pitch',
-      date: 'April 18, 2023',
-      time: '4:00 PM - 5:00 PM',
-      price: '£50.00'
-    }
-  ];
+  const formatCurrency = (amount: number) => {
+    return `£${amount.toFixed(2)}`;
+  };
+
+  const formatMemberSince = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long'
+    });
+  };
 
   return (
     <Layout>
@@ -84,28 +207,39 @@ const Dashboard = () => {
                 </TabsList>
                 
                 <TabsContent value="upcoming">
-                  {upcomingBookings.length > 0 ? (
+                  {isLoadingBookings ? (
+                    <div className="flex justify-center items-center p-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-cricket-green" />
+                    </div>
+                  ) : upcomingBookings.length > 0 ? (
                     <div className="space-y-4">
                       {upcomingBookings.map((booking) => (
                         <Card key={booking.id}>
                           <CardContent className="p-6">
                             <div className="flex flex-col md:flex-row justify-between">
                               <div>
-                                <h3 className="font-bold text-lg text-cricket-dark">{booking.pitchType}</h3>
-                                <p className="text-gray-600">{booking.date} • {booking.time}</p>
-                                <p className="font-medium text-cricket-green mt-2">{booking.price}</p>
+                                <h3 className="font-bold text-lg text-cricket-dark">{booking.pitch_type}</h3>
+                                <p className="text-gray-600">{formatDate(booking.date)} • {booking.time}</p>
+                                <p className="font-medium text-cricket-green mt-2">{formatCurrency(booking.price)}</p>
+                                {booking.status === 'cancelled' && (
+                                  <Badge variant="outline" className="mt-2 text-red-500 border-red-200 bg-red-50">
+                                    Cancelled
+                                  </Badge>
+                                )}
                               </div>
-                              <div className="flex space-x-2 mt-4 md:mt-0">
-                                <Button variant="outline" className="border-cricket-green text-cricket-green hover:bg-cricket-green hover:text-white">
-                                  Modify
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  onClick={handleCancelBooking}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
+                              {booking.status !== 'cancelled' && (
+                                <div className="flex space-x-2 mt-4 md:mt-0">
+                                  <Button variant="outline" className="border-cricket-green text-cricket-green hover:bg-cricket-green hover:text-white">
+                                    Modify
+                                  </Button>
+                                  <Button 
+                                    variant="destructive" 
+                                    onClick={() => handleCancelBooking(booking.id)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </CardContent>
                         </Card>
@@ -124,16 +258,25 @@ const Dashboard = () => {
                 </TabsContent>
                 
                 <TabsContent value="past">
-                  {pastBookings.length > 0 ? (
+                  {isLoadingBookings ? (
+                    <div className="flex justify-center items-center p-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-cricket-green" />
+                    </div>
+                  ) : pastBookings.length > 0 ? (
                     <div className="space-y-4">
                       {pastBookings.map((booking) => (
                         <Card key={booking.id}>
                           <CardContent className="p-6">
                             <div className="flex flex-col md:flex-row justify-between">
                               <div>
-                                <h3 className="font-bold text-lg text-cricket-dark">{booking.pitchType}</h3>
-                                <p className="text-gray-600">{booking.date} • {booking.time}</p>
-                                <p className="font-medium text-cricket-green mt-2">{booking.price}</p>
+                                <h3 className="font-bold text-lg text-cricket-dark">{booking.pitch_type}</h3>
+                                <p className="text-gray-600">{formatDate(booking.date)} • {booking.time}</p>
+                                <p className="font-medium text-cricket-green mt-2">{formatCurrency(booking.price)}</p>
+                                {booking.status === 'cancelled' && (
+                                  <Badge variant="outline" className="mt-2 text-red-500 border-red-200 bg-red-50">
+                                    Cancelled
+                                  </Badge>
+                                )}
                               </div>
                               <div className="mt-4 md:mt-0">
                                 <Button variant="outline">Book Again</Button>
@@ -155,7 +298,6 @@ const Dashboard = () => {
             </div>
             
             <div className="space-y-6">
-              {/* Membership Status Card - NEW COMPONENT */}
               <MembershipStatus />
               
               <Card>
@@ -164,24 +306,36 @@ const Dashboard = () => {
                   <CardDescription>Your account information and stats</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Name</p>
-                      <p className="font-medium">John Doe</p>
+                  {isLoadingProfile ? (
+                    <div className="flex justify-center items-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-cricket-green" />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium">john.doe@example.com</p>
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Name</p>
+                        <p className="font-medium">
+                          {userProfile ? 
+                            `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'Not set' 
+                            : user?.email?.split('@')[0] || 'Not available'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="font-medium">{user?.email || 'Not available'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Total Bookings</p>
+                        <p className="font-medium">{upcomingBookings.length + pastBookings.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Member Since</p>
+                        <p className="font-medium">
+                          {userProfile ? formatMemberSince(userProfile.member_since) : 'Not available'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Total Bookings</p>
-                      <p className="font-medium">5</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Member Since</p>
-                      <p className="font-medium">January 2023</p>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
               
@@ -199,7 +353,17 @@ const Dashboard = () => {
                   <Button variant="outline" className="w-full justify-start">
                     Payment Methods
                   </Button>
-                  <Button variant="outline" className="w-full justify-start text-red-500 hover:text-red-700">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-red-500 hover:text-red-700"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      toast({
+                        title: "Signed Out",
+                        description: "You have been successfully signed out."
+                      });
+                    }}
+                  >
                     Log Out
                   </Button>
                 </CardContent>
