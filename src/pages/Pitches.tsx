@@ -8,47 +8,47 @@ const Pitches = () => {
   const pitches = [
     {
       id: 1,
-      title: 'Premium Match Pitch',
-      description: 'Professional-grade cricket pitch with electronic scoreboard and spectator seating. Ideal for league matches and tournaments.',
+      title: 'Bowling Machine Lane',
+      description: 'Professional practice with our state-of-the-art bowling machines for perfecting your technique.',
       image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '$75/hour',
+      price: '$45/hour',
       features: [
-        'Electronic scoreboard',
-        'Spectator seating',
-        'Match-quality pitch',
+        'Professional bowling machines',
+        'Speed and spin control',
+        'Performance analysis',
         'HD recording capabilities',
         'Professional lighting system',
-        'Changing rooms and showers'
+        'Technical feedback available'
       ]
     },
     {
       id: 2,
-      title: 'Training Pitch',
-      description: 'Ideal for practice sessions and coaching with bowling machines available. Perfect for teams looking to improve their skills.',
+      title: 'Normal Practice Lane',
+      description: 'Standard cricket lanes for practice sessions, casual play, and friendly matches.',
       image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '$50/hour',
+      price: '$40/hour',
       features: [
-        'Bowling machines',
-        'Video analysis',
-        'Training equipment',
-        'Coaching area',
-        'Ball tracking technology',
-        'Skill development zones'
+        'Basic equipment provided',
+        'Suitable for all skill levels',
+        'Flexible booking times',
+        'Casual-friendly environment',
+        'Group bookings welcome',
+        'Perfect for practice matches'
       ]
     },
     {
       id: 3,
-      title: 'Casual Play Pitch',
-      description: 'Perfect for casual games and beginners looking to enjoy cricket indoors. Affordable option for friendly matches and recreational play.',
+      title: 'Coaching Sessions',
+      description: 'Personalized training with experienced cricket coaches to improve your skills.',
       image: 'https://images.unsplash.com/photo-1624765434852-66678c237697?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '$35/hour',
+      price: '$60/hour',
       features: [
-        'Basic equipment provided',
-        'Flexible booking',
-        'Suitable for beginners',
-        'Family-friendly environment',
-        'No special gear required',
-        'Relaxed atmosphere'
+        'Personalized training',
+        'Professional coaches',
+        'Skill development focus',
+        'Video analysis included',
+        'Performance tracking',
+        'Technique refinement'
       ]
     },
     {

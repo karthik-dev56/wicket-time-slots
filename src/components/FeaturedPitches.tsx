@@ -43,7 +43,7 @@ export const FeaturedPitches = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {pitches.map((pitch) => (
-            <Card key={pitch.id} className="overflow-hidden hover-scale">
+            <Card key={pitch.id} className="overflow-hidden hover:shadow-lg transition-all duration-300">
               <div className="h-48 overflow-hidden">
                 <img 
                   src={pitch.image} 
