@@ -63,20 +63,30 @@ serve(async (req) => {
     };
 
     // Store booking in database if session is valid
-    await supabase.from("bookings").insert({
+    const { data: bookingData, error: bookingError } = await supabase.from("bookings").insert({
       user_id: user.id,
       pitch_type: bookingMetadata.pitchType,
       date: bookingMetadata.date,
       time: bookingMetadata.timeSlot,
       price: bookingMetadata.price,
-      booking_date: new Date().toISOString()
-    });
+      booking_date: new Date().toISOString(),
+      status: 'upcoming'
+    }).select();
+
+    if (bookingError) {
+      console.error("Error storing booking:", bookingError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to store booking data" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         status: "Complete",
-        metadata: bookingMetadata
+        metadata: bookingMetadata,
+        booking: bookingData?.[0] || null
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
