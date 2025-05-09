@@ -1,30 +1,62 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [membershipActive, setMembershipActive] = useState(false);
+  const [membershipType, setMembershipType] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
+      if (session?.user) {
+        checkMembership();
+      } else {
+        setMembershipActive(false);
+        setMembershipType('');
+      }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
-    });
+      if (session?.user) {
+        checkMembership();
+      }
+    };
+
+    initializeAuth();
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  const checkMembership = async () => {
+    try {
+      const { data } = await supabase.functions.invoke('check-membership', {});
+      if (data?.active) {
+        setMembershipActive(true);
+        setMembershipType(data.membershipType);
+      } else {
+        setMembershipActive(false);
+        setMembershipType('');
+      }
+    } catch (error) {
+      console.error('Error checking membership:', error);
+      setMembershipActive(false);
+      setMembershipType('');
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -40,6 +72,14 @@ export const Navigation = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const getMembershipColor = (type: string) => {
+    switch(type) {
+      case 'premium': return 'bg-amber-500';
+      case 'junior': return 'bg-green-500';
+      default: return 'bg-blue-500';
     }
   };
   
@@ -69,8 +109,16 @@ export const Navigation = () => {
           </Link>
           {user ? (
             <>
-              <Button asChild variant="default" className="bg-cricket-green hover:bg-cricket-green-light">
-                <Link to="/dashboard">Dashboard</Link>
+              <Button asChild variant="default" className="bg-cricket-green hover:bg-cricket-green-light flex items-center gap-2">
+                <Link to="/dashboard">
+                  Dashboard
+                  {membershipActive && (
+                    <Badge className={`ml-2 ${getMembershipColor(membershipType)}`}>
+                      <Crown className="h-3 w-3 mr-1" />
+                      <span className="text-[10px] uppercase">{membershipType}</span>
+                    </Badge>
+                  )}
+                </Link>
               </Button>
               <Button 
                 variant="outline" 
@@ -133,10 +181,18 @@ export const Navigation = () => {
                 <Button 
                   asChild 
                   variant="default" 
-                  className="bg-cricket-green hover:bg-cricket-green-light w-full"
+                  className="bg-cricket-green hover:bg-cricket-green-light w-full justify-start"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Link to="/dashboard">Dashboard</Link>
+                  <Link to="/dashboard" className="flex items-center">
+                    Dashboard
+                    {membershipActive && (
+                      <Badge className={`ml-2 ${getMembershipColor(membershipType)}`}>
+                        <Crown className="h-3 w-3 mr-1" />
+                        <span className="text-[10px] uppercase">{membershipType}</span>
+                      </Badge>
+                    )}
+                  </Link>
                 </Button>
                 <Button 
                   variant="outline" 

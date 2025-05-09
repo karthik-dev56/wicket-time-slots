@@ -1,10 +1,12 @@
 
+import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { MembershipStatus } from '@/components/MembershipStatus';
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -153,6 +155,9 @@ const Dashboard = () => {
             </div>
             
             <div className="space-y-6">
+              {/* Membership Status Card - NEW COMPONENT */}
+              <MembershipStatus />
+              
               <Card>
                 <CardHeader>
                   <CardTitle>Account Summary</CardTitle>
