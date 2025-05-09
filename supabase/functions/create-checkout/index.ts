@@ -20,6 +20,9 @@ const DISCOUNTS = {
   groupDiscount: 0.1, // 10% discount for groups of 5+
   earlyBird: 0.15, // 15% off before 4 PM on weekdays
   weekend: 7000, // $70 for 2 hours (Weekend Family Package)
+  basic: 0.1, // 10% for basic membership
+  premium: 0.2, // 20% for premium membership
+  junior: 0.15, // 15% for junior membership
 };
 
 serve(async (req) => {
@@ -29,7 +32,16 @@ serve(async (req) => {
   }
 
   try {
-    const { pitchType, date, timeSlot, players, isEarlyBird, isWeekendPackage } = await req.json();
+    const { 
+      pitchType, 
+      date, 
+      timeSlot, 
+      players, 
+      isEarlyBird, 
+      isWeekendPackage,
+      membershipType,
+      membershipDiscount
+    } = await req.json();
     
     if (!pitchType) {
       throw new Error("Pitch type is required");
@@ -64,23 +76,58 @@ serve(async (req) => {
     
     // Apply discounts if applicable
     let description = `Booking for ${date} at ${timeSlot}`;
+    let discountsApplied = [];
     
-    // Apply group discount if 5+ players
-    if (players && players >= 5) {
-      priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.groupDiscount));
-      description += ` (Group discount applied: 10% off)`;
+    // Check if premium member is using their free hour
+    let isFreeHour = false;
+    if (membershipType === "premium" && pitchType === "normalLane") {
+      // In a real app, we'd check if they've used their free hour this week
+      // For now, we'll assume they haven't
+      const hasFreeHourAvailable = true;
+      if (hasFreeHourAvailable) {
+        priceAmount = 0;
+        isFreeHour = true;
+        discountsApplied.push("Premium member free hour");
+        description += " (Premium member free hour)";
+      }
     }
     
-    // Apply early bird discount if applicable (before 4 PM on weekdays)
-    if (isEarlyBird) {
-      priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.earlyBird));
-      description += ` (Early bird discount applied: 15% off)`;
+    // Only apply other discounts if it's not a free hour
+    if (!isFreeHour) {
+      // Apply membership discount if applicable
+      if (membershipType && membershipDiscount) {
+        // For basic membership, don't apply discount to bowling machine
+        if (!(membershipType === "basic" && pitchType === "bowlingMachine")) {
+          const discountRate = membershipDiscount / 100;
+          const originalPrice = priceAmount;
+          priceAmount = Math.round(priceAmount * (1 - discountRate));
+          discountsApplied.push(`${membershipType} membership: ${membershipDiscount}% off`);
+        }
+      }
+
+      // Apply group discount if 5+ players
+      if (players && players >= 5) {
+        const originalPrice = priceAmount;
+        priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.groupDiscount));
+        discountsApplied.push("Group discount: 10% off");
+      }
+      
+      // Apply early bird discount if applicable (before 4 PM on weekdays)
+      if (isEarlyBird) {
+        const originalPrice = priceAmount;
+        priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.earlyBird));
+        discountsApplied.push("Early bird: 15% off");
+      }
+      
+      // Apply weekend package if selected
+      if (isWeekendPackage && pitchType === "normalLane") {
+        priceAmount = DISCOUNTS.weekend;
+        discountsApplied.push("Weekend Family Package: 2 hours for $70");
+      }
     }
     
-    // Apply weekend package if selected
-    if (isWeekendPackage && pitchType === "normalLane") {
-      priceAmount = DISCOUNTS.weekend;
-      description += ` (Weekend Family Package: 2 hours for $70)`;
+    if (discountsApplied.length > 0) {
+      description += ` (${discountsApplied.join(', ')})`;
     }
     
     // Create a Checkout session with inline price creation
@@ -109,12 +156,12 @@ serve(async (req) => {
         players: players?.toString() || "1",
         isEarlyBird: isEarlyBird ? "true" : "false",
         isWeekendPackage: isWeekendPackage ? "true" : "false",
+        membershipType: membershipType || "",
+        discountsApplied: discountsApplied.join(", "),
+        isFreeHour: isFreeHour ? "true" : "false"
       },
     });
 
-    // Optional: Store booking in Supabase
-    // This could be expanded to store the booking in a bookings table
-    
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

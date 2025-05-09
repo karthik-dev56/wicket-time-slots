@@ -1,12 +1,18 @@
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from "@/integrations/supabase/client";
 
 export const MembershipPlans = () => {
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+  const { toast } = useToast();
+
   const plans = [
     {
-      id: 1,
+      id: "basic",
       title: 'Basic Membership',
       price: '$30/month',
       description: 'Perfect for casual players who want to save on regular bookings.',
@@ -17,7 +23,7 @@ export const MembershipPlans = () => {
       ]
     },
     {
-      id: 2,
+      id: "premium",
       title: 'Premium Membership',
       price: '$80/month',
       description: 'Our most comprehensive package for serious cricket enthusiasts.',
@@ -30,7 +36,7 @@ export const MembershipPlans = () => {
       featured: true
     },
     {
-      id: 3,
+      id: "junior",
       title: 'Junior Membership',
       price: '$20/month',
       description: 'Special package for players under 16 years old.',
@@ -42,8 +48,35 @@ export const MembershipPlans = () => {
     }
   ];
 
+  const handleSubscribe = async (planId: string) => {
+    try {
+      setIsLoading(planId);
+      
+      const { data, error } = await supabase.functions.invoke('create-subscription', {
+        body: { planType: planId }
+      });
+      
+      if (error) throw new Error(error.message);
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Subscription Error',
+        description: error.message || 'Failed to start subscription process',
+        variant: 'destructive'
+      });
+      console.error('Subscription error:', error);
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-white" id="membership-plans">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-cricket-dark">Membership Plans</h2>
@@ -79,8 +112,17 @@ export const MembershipPlans = () => {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button asChild className="w-full bg-cricket-green hover:bg-cricket-green-light">
-                  <Link to="/contact">Sign Up Now</Link>
+                <Button 
+                  className="w-full bg-cricket-green hover:bg-cricket-green-light"
+                  onClick={() => handleSubscribe(plan.id)}
+                  disabled={isLoading === plan.id}
+                >
+                  {isLoading === plan.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : "Subscribe Now"}
                 </Button>
               </CardFooter>
             </Card>
