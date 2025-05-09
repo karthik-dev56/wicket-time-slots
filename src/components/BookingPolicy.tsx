@@ -1,5 +1,7 @@
 
 import { AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 export const BookingPolicy = () => {
   return (
@@ -35,10 +37,17 @@ export const BookingPolicy = () => {
             </ul>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mt-4">
-              <p className="font-medium text-yellow-800">
+              <p className="font-medium text-yellow-800 mb-2">
                 Please arrive 10-15 minutes before your scheduled time to complete check-in 
                 and prepare for your session.
               </p>
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="mb-3">For a complete list of facility rules and regulations:</p>
+              <Button asChild variant="outline" className="border-cricket-green text-cricket-green hover:bg-cricket-green hover:text-white">
+                <Link to="/rules">View Facility Rules</Link>
+              </Button>
             </div>
           </div>
         </div>

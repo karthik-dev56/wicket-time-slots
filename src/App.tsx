@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Pitches from "./pages/Pitches";
 import Contact from "./pages/Contact";
+import Rules from "./pages/Rules";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/pitches" element={<Pitches />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/rules" element={<Rules />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>

@@ -140,6 +140,9 @@ const Pitches = () => {
             <Button asChild variant="outline" className="border-cricket-green text-cricket-green hover:bg-cricket-green hover:text-white">
               <Link to="/booking">Book Now</Link>
             </Button>
+            <Button asChild variant="outline" className="border-cricket-green text-cricket-green hover:bg-cricket-green hover:text-white">
+              <Link to="/rules">Facility Rules</Link>
+            </Button>
           </div>
         </div>
       </section>
