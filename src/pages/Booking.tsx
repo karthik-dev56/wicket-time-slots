@@ -8,26 +8,55 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define price mapping
 const PRICES = {
-  premium: 7500, // $75.00 in cents
-  training: 5000, // $50.00 in cents
-  casual: 3500 // $35.00 in cents
+  bowlingMachine: 4500, // $45.00 in cents
+  normalLane: 4000, // $40.00 in cents
+  coaching: 6000 // $60.00 in cents
 };
 
 const Booking = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [pitchType, setPitchType] = useState<string>("");
   const [timeSlot, setTimeSlot] = useState<string>("");
+  const [players, setPlayers] = useState<number>(1);
+  const [isEarlyBird, setIsEarlyBird] = useState<boolean>(false);
+  const [isWeekendPackage, setIsWeekendPackage] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [bookingError, setBookingError] = useState<string>("");
   const { toast } = useToast();
-  const navigate = useNavigate();
+
+  // Check if the selected time is eligible for early bird discount
+  useEffect(() => {
+    if (date && timeSlot) {
+      const dayOfWeek = date.getDay();
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
+      
+      const hourStr = timeSlot.split(':')[0].trim();
+      const hour = parseInt(hourStr);
+      const isPM = timeSlot.includes('PM');
+      const is24Hour = isPM && hour !== 12 ? hour + 12 : hour === 12 && !isPM ? 0 : hour;
+      
+      // Early bird discount applies before 4 PM on weekdays
+      setIsEarlyBird(isWeekday && is24Hour < 16);
+    }
+  }, [date, timeSlot]);
+
+  // Automatically enable weekend package option for normal lanes on weekends
+  useEffect(() => {
+    if (date && pitchType === 'normalLane') {
+      const dayOfWeek = date.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+      setIsWeekendPackage(isWeekend);
+    } else {
+      setIsWeekendPackage(false);
+    }
+  }, [date, pitchType]);
 
   useEffect(() => {
     // Clear any previous errors when form fields change
@@ -63,6 +92,9 @@ const Booking = () => {
           pitchType,
           date: formattedDate,
           timeSlot,
+          players,
+          isEarlyBird,
+          isWeekendPackage,
         },
       });
       
@@ -105,6 +137,30 @@ const Booking = () => {
     '8:00 PM - 9:00 PM',
   ];
 
+  // Calculate price with discounts
+  const calculatePrice = () => {
+    if (!pitchType) return "$0.00";
+    
+    let price = PRICES[pitchType as keyof typeof PRICES] / 100;
+    
+    // Apply group discount if 5+ players
+    if (players >= 5) {
+      price = price * 0.9; // 10% off
+    }
+    
+    // Apply early bird discount if applicable
+    if (isEarlyBird) {
+      price = price * 0.85; // 15% off
+    }
+    
+    // Apply weekend package if selected
+    if (isWeekendPackage && pitchType === 'normalLane') {
+      price = 70; // Fixed $70 for weekend package
+    }
+    
+    return `$${price.toFixed(2)}`;
+  };
+
   return (
     <Layout>
       <section className="py-16 bg-cricket-gray">
@@ -131,9 +187,9 @@ const Booking = () => {
                         <SelectValue placeholder="Select a pitch type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="premium">Premium Match Pitch ($75.00/hour)</SelectItem>
-                        <SelectItem value="training">Training Pitch ($50.00/hour)</SelectItem>
-                        <SelectItem value="casual">Casual Play Pitch ($35.00/hour)</SelectItem>
+                        <SelectItem value="bowlingMachine">Bowling Machine Lane ($45.00/hour)</SelectItem>
+                        <SelectItem value="normalLane">Normal Practice Lane ($40.00/hour)</SelectItem>
+                        <SelectItem value="coaching">Coaching Session ($60.00/hour)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -176,6 +232,61 @@ const Booking = () => {
                     </Select>
                   </div>
                   
+                  <div className="space-y-2">
+                    <Label htmlFor="players">Number of Players</Label>
+                    <Select 
+                      value={players.toString()} 
+                      onValueChange={(value) => setPlayers(parseInt(value))}
+                    >
+                      <SelectTrigger id="players">
+                        <SelectValue placeholder="Select number of players" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} {num === 1 ? 'player' : 'players'}
+                            {num >= 5 ? ' (10% group discount)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {pitchType === 'normalLane' && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="weekend-package" 
+                        checked={isWeekendPackage}
+                        onCheckedChange={(checked) => setIsWeekendPackage(checked as boolean)}
+                        disabled={date && (date.getDay() === 0 || date.getDay() === 6)} // Disable on weekends - auto checked
+                      />
+                      <Label htmlFor="weekend-package">
+                        Weekend Family Package (2 hours for $70)
+                        {date && (date.getDay() === 0 || date.getDay() === 6) && 
+                          <span className="text-sm text-gray-500 ml-2">(Auto-applied on weekends)</span>
+                        }
+                      </Label>
+                    </div>
+                  )}
+                  
+                  {isEarlyBird && (
+                    <div className="bg-green-50 p-3 rounded-md border border-green-200">
+                      <p className="text-green-800 text-sm flex items-center">
+                        <span className="mr-2 text-green-600">✓</span>
+                        Early Bird Discount Applied (15% off before 4 PM on weekdays)
+                      </p>
+                    </div>
+                  )}
+                  
+                  {players >= 5 && (
+                    <div className="bg-green-50 p-3 rounded-md border border-green-200">
+                      <p className="text-green-800 text-sm flex items-center">
+                        <span className="mr-2 text-green-600">✓</span>
+                        Group Discount Applied (10% off for 5+ players)
+                      </p>
+                    </div>
+                  )}
+                  
                   {bookingError && (
                     <Alert variant="destructive">
                       <AlertDescription>
@@ -210,9 +321,9 @@ const Booking = () => {
                   <div className="border-b pb-4">
                     <p className="text-sm text-gray-500">Selected Pitch</p>
                     <p className="font-medium">
-                      {pitchType === 'premium' && 'Premium Match Pitch'}
-                      {pitchType === 'training' && 'Training Pitch'}
-                      {pitchType === 'casual' && 'Casual Play Pitch'}
+                      {pitchType === 'bowlingMachine' && 'Bowling Machine Lane'}
+                      {pitchType === 'normalLane' && 'Normal Practice Lane'}
+                      {pitchType === 'coaching' && 'Coaching Session'}
                       {!pitchType && 'No pitch selected'}
                     </p>
                   </div>
@@ -231,14 +342,29 @@ const Booking = () => {
                     </p>
                   </div>
                   
+                  <div className="border-b pb-4">
+                    <p className="text-sm text-gray-500">Players</p>
+                    <p className="font-medium">
+                      {players} {players === 1 ? 'player' : 'players'}
+                      {players >= 5 && <span className="text-green-600 ml-2">(Group discount)</span>}
+                    </p>
+                  </div>
+                  
                   <div className="pt-2">
                     <p className="text-sm text-gray-500">Estimated Price</p>
                     <p className="font-bold text-xl text-cricket-green">
-                      {pitchType === 'premium' && '$75.00'}
-                      {pitchType === 'training' && '$50.00'}
-                      {pitchType === 'casual' && '$35.00'}
-                      {!pitchType && '$0.00'}
+                      {calculatePrice()}
                     </p>
+                    {(isEarlyBird || players >= 5 || isWeekendPackage) && (
+                      <div className="text-sm text-gray-500 mt-1">
+                        <p>Discounts applied:</p>
+                        <ul className="list-disc pl-5 space-y-1 mt-1">
+                          {isEarlyBird && <li>15% Early Bird Discount</li>}
+                          {players >= 5 && <li>10% Group Discount</li>}
+                          {isWeekendPackage && pitchType === 'normalLane' && <li>Weekend Family Package</li>}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

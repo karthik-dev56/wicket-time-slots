@@ -10,9 +10,16 @@ const corsHeaders = {
 
 // Define price mapping for direct price creation
 const PRICES = {
-  premium: 7500, // $75.00 in cents
-  training: 5000, // $50.00 in cents
-  casual: 3500 // $35.00 in cents
+  bowlingMachine: 4500, // $45.00 in cents
+  normalLane: 4000, // $40.00 in cents
+  coaching: 6000 // $60.00 in cents
+};
+
+// Define discounts
+const DISCOUNTS = {
+  groupDiscount: 0.1, // 10% discount for groups of 5+
+  earlyBird: 0.15, // 15% off before 4 PM on weekdays
+  weekend: 7000, // $70 for 2 hours (Weekend Family Package)
 };
 
 serve(async (req) => {
@@ -22,7 +29,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pitchType, date, timeSlot } = await req.json();
+    const { pitchType, date, timeSlot, players, isEarlyBird, isWeekendPackage } = await req.json();
     
     if (!pitchType) {
       throw new Error("Pitch type is required");
@@ -34,13 +41,47 @@ serve(async (req) => {
     });
     
     // Get the price amount for the selected pitch type
-    const priceAmount = PRICES[pitchType as keyof typeof PRICES];
+    let priceAmount = PRICES[pitchType as keyof typeof PRICES];
     if (!priceAmount) {
       throw new Error("Invalid pitch type selected");
     }
     
     // Format the pitch name for display
-    const pitchName = pitchType.charAt(0).toUpperCase() + pitchType.slice(1) + " Cricket Pitch";
+    let pitchName;
+    switch (pitchType) {
+      case "bowlingMachine":
+        pitchName = "Bowling Machine Lane";
+        break;
+      case "normalLane":
+        pitchName = "Normal Practice Lane";
+        break;
+      case "coaching":
+        pitchName = "Coaching Session";
+        break;
+      default:
+        pitchName = "Cricket Pitch";
+    }
+    
+    // Apply discounts if applicable
+    let description = `Booking for ${date} at ${timeSlot}`;
+    
+    // Apply group discount if 5+ players
+    if (players && players >= 5) {
+      priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.groupDiscount));
+      description += ` (Group discount applied: 10% off)`;
+    }
+    
+    // Apply early bird discount if applicable (before 4 PM on weekdays)
+    if (isEarlyBird) {
+      priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.earlyBird));
+      description += ` (Early bird discount applied: 15% off)`;
+    }
+    
+    // Apply weekend package if selected
+    if (isWeekendPackage && pitchType === "normalLane") {
+      priceAmount = DISCOUNTS.weekend;
+      description += ` (Weekend Family Package: 2 hours for $70)`;
+    }
     
     // Create a Checkout session with inline price creation
     const session = await stripe.checkout.sessions.create({
@@ -51,7 +92,7 @@ serve(async (req) => {
             currency: 'usd',
             product_data: {
               name: pitchName,
-              description: `Booking for ${date} at ${timeSlot}`,
+              description: description,
             },
             unit_amount: priceAmount,
           },
@@ -65,6 +106,9 @@ serve(async (req) => {
         pitchType,
         date,
         timeSlot,
+        players: players?.toString() || "1",
+        isEarlyBird: isEarlyBird ? "true" : "false",
+        isWeekendPackage: isWeekendPackage ? "true" : "false",
       },
     });
 

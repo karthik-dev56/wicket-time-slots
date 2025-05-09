@@ -7,27 +7,27 @@ export const FeaturedPitches = () => {
   const pitches = [
     {
       id: 1,
-      title: 'Premium Match Pitch',
-      description: 'Professional-grade cricket pitch with electronic scoreboard and spectator seating.',
+      title: 'Bowling Machine Lane',
+      description: 'Professional practice with our state-of-the-art bowling machines for perfecting your technique.',
       image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '$75/hour',
-      features: ['Electronic scoreboard', 'Spectator seating', 'Match-quality pitch']
+      price: '$45/hour',
+      features: ['Professional bowling machines', 'Speed and spin control', 'Performance analysis']
     },
     {
       id: 2,
-      title: 'Training Pitch',
-      description: 'Ideal for practice sessions and coaching with bowling machines available.',
+      title: 'Normal Practice Lane',
+      description: 'Standard cricket lanes for practice sessions, casual play, and friendly matches.',
       image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '$50/hour',
-      features: ['Bowling machines', 'Video analysis', 'Training equipment']
+      price: '$40/hour',
+      features: ['Basic equipment provided', 'Suitable for all skill levels', 'Flexible booking times']
     },
     {
       id: 3,
-      title: 'Casual Play Pitch',
-      description: 'Perfect for casual games and beginners looking to enjoy cricket indoors.',
+      title: 'Coaching Sessions',
+      description: 'Personalized training with experienced cricket coaches to improve your skills.',
       image: 'https://images.unsplash.com/photo-1624765434852-66678c237697?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '$35/hour',
-      features: ['Basic equipment provided', 'Flexible booking', 'Suitable for beginners']
+      price: '$60/hour',
+      features: ['Personalized training', 'Professional coaches', 'Skill development focus']
     }
   ];
   

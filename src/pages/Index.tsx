@@ -4,6 +4,8 @@ import { HeroBanner } from '@/components/HeroBanner';
 import { FeaturedPitches } from '@/components/FeaturedPitches';
 import { Testimonials } from '@/components/Testimonials';
 import { CallToAction } from '@/components/CallToAction';
+import { MembershipPlans } from '@/components/MembershipPlans';
+import { BookingPolicy } from '@/components/BookingPolicy';
 
 const Index = () => {
   return (
@@ -54,6 +56,8 @@ const Index = () => {
       </section>
       
       <FeaturedPitches />
+      <MembershipPlans />
+      <BookingPolicy />
       <Testimonials />
       <CallToAction />
     </Layout>
