@@ -15,7 +15,7 @@ serve(async (req) => {
 
   try {
     // Get request body
-    const { sessionId } = await req.json();
+    const { sessionId, pitchType, date, timeSlot, price } = await req.json();
     
     if (!sessionId) {
       return new Response(
@@ -50,19 +50,19 @@ serve(async (req) => {
       );
     }
 
-    // For now, we're simulating verification without calling Stripe API
+    // For now, we're using the data passed from the client
     // In production, you would verify with Stripe using the Stripe API
     
-    // Simulate booking data (in production, this would come from Stripe session)
+    // Use the booking data passed from the client
     const bookingMetadata = {
-      pitchType: "Premium Match Pitch",
-      date: new Date().toISOString().split("T")[0],
-      timeSlot: "3:00 PM - 4:00 PM",
+      pitchType: pitchType || "Bowling Machine Lane",
+      date: date || new Date().toISOString().split("T")[0],
+      timeSlot: timeSlot || "3:00 PM - 4:00 PM",
       userId: user.id,
-      price: 75.00
+      price: price || 45.00
     };
 
-    // Store booking in database if session is valid
+    // Store booking in database
     const { data: bookingData, error: bookingError } = await supabase.from("bookings").insert({
       user_id: user.id,
       pitch_type: bookingMetadata.pitchType,

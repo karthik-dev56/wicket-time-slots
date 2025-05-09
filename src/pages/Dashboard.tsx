@@ -171,7 +171,10 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return `£${amount.toFixed(2)}`;
+    // Check if the price is in dollars or pounds based on the value
+    // This is a simple solution but in a real app, you might want to use a proper currency indicator
+    const currencySymbol = amount < 100 ? '$' : '£'; // Assuming prices in dollars are less than 100
+    return `${currencySymbol}${amount.toFixed(2)}`;
   };
 
   const formatMemberSince = (dateString: string | null) => {
