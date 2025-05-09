@@ -8,102 +8,160 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper logging function for enhanced debugging
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CHECK-MEMBERSHIP] ${step}${detailsStr}`);
+};
+
+// Define membership benefits mapping
+const MEMBERSHIP_BENEFITS = {
+  basic: {
+    discount: 10,
+    benefits: [
+      "10% off lane bookings",
+      "Priority booking access",
+      "Member-only events"
+    ]
+  },
+  premium: {
+    discount: 20,
+    benefits: [
+      "20% off all sessions (including bowling machine)",
+      "1 free hour per week (normal lane)",
+      "Discounts on coaching & events",
+      "Access to members lounge"
+    ]
+  },
+  junior: {
+    discount: 15,
+    benefits: [
+      "15% off bookings",
+      "Free weekly group training session",
+      "Junior tournaments access"
+    ]
+  }
+};
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client using the anon key for user authentication.
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
+    logStep("Function started");
 
-    // Retrieve authenticated user
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     
-    if (!user?.email) {
-      throw new Error("User not authenticated or email not available");
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase configuration");
     }
 
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    logStep("Supabase client created");
+
+    // Retrieve authenticated user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header provided");
+    }
+    
+    const token = authHeader.replace("Bearer ", "");
+    logStep("Auth token extracted");
+    
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError) {
+      logStep("Authentication error", { message: userError.message });
+      throw new Error(`Authentication error: ${userError.message}`);
+    }
+    
+    const user = userData.user;
+    if (!user?.email) {
+      logStep("User authentication failed - no email available");
+      throw new Error("User not authenticated or email not available");
+    }
+    
+    logStep("User authenticated", { userId: user.id });
+
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("Stripe secret key not configured");
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
     });
+    logStep("Stripe initialized");
 
     // Check if a Stripe customer exists for this user
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
     if (customers.data.length === 0) {
-      return new Response(JSON.stringify({ 
-        active: false,
-        message: "No membership found" 
-      }), {
+      logStep("No Stripe customer found");
+      return new Response(JSON.stringify({ active: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
     const customerId = customers.data[0].id;
-    
-    // Get customer's subscriptions
+    logStep("Stripe customer found", { customerId });
+
+    // Check if the customer has an active subscription
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: 'active',
-      limit: 1,
     });
 
     if (subscriptions.data.length === 0) {
-      return new Response(JSON.stringify({ 
-        active: false,
-        message: "No active membership" 
-      }), {
+      logStep("No active subscriptions found");
+      return new Response(JSON.stringify({ active: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    // Get subscription details
+    // Get the most recent active subscription
     const subscription = subscriptions.data[0];
-    const priceId = subscription.items.data[0].price.id;
-    const price = await stripe.prices.retrieve(priceId);
-    
-    // Determine membership type based on price
-    let membershipType = "";
-    const amount = price.unit_amount || 0;
-    
-    if (amount === 2000) {
-      membershipType = "junior";
-    } else if (amount === 3000) {
-      membershipType = "basic";
-    } else if (amount === 8000) {
-      membershipType = "premium";
-    }
+    logStep("Active subscription found", { subscriptionId: subscription.id });
 
-    // Return membership details
-    return new Response(JSON.stringify({ 
-      active: true,
-      membershipType,
-      renewalDate: new Date(subscription.current_period_end * 1000).toISOString(),
-      discount: membershipType === "basic" ? 10 : 
-               membershipType === "premium" ? 20 : 
-               membershipType === "junior" ? 15 : 0,
-      benefits: membershipType === "basic" ? ["10% off lane bookings", "Priority booking access"] :
-                membershipType === "premium" ? ["20% off all sessions", "1 free hour per week", "Discounts on coaching & events"] :
-                membershipType === "junior" ? ["15% off bookings", "Free weekly group training session"] : []
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
-    console.error('Membership check error:', error);
+    // Extract membership type from subscription metadata
+    let membershipType = subscription.metadata.plan_type || "basic";
+    
+    if (!membershipType || !MEMBERSHIP_BENEFITS[membershipType]) {
+      logStep("Invalid membership type, defaulting to basic", { membershipType });
+      membershipType = "basic";
+    }
+    
+    // Get membership benefits
+    const benefits = MEMBERSHIP_BENEFITS[membershipType].benefits;
+    const discount = MEMBERSHIP_BENEFITS[membershipType].discount;
+    
+    // Calculate renewal date
+    const renewalDate = new Date(subscription.current_period_end * 1000).toISOString();
+    
+    logStep("Membership details retrieved", { membershipType, discount, renewalDate });
+
     return new Response(
-      JSON.stringify({ error: error.message || "Error checking membership status" }),
+      JSON.stringify({
+        active: true,
+        membershipType,
+        discount,
+        benefits,
+        renewalDate,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Membership check error:', errorMessage);
+    return new Response(
+      JSON.stringify({ error: errorMessage, active: false }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,

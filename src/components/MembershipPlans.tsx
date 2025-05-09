@@ -2,12 +2,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const MembershipPlans = () => {
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const plans = [
@@ -50,7 +52,23 @@ export const MembershipPlans = () => {
 
   const handleSubscribe = async (planId: string) => {
     try {
+      setError(null);
       setIsLoading(planId);
+      
+      // Check if user is logged in
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please sign in to subscribe to a membership plan',
+          variant: 'destructive'
+        });
+        
+        // Redirect to auth page
+        window.location.href = '/auth';
+        return;
+      }
       
       const { data, error } = await supabase.functions.invoke('create-subscription', {
         body: { planType: planId }
@@ -64,6 +82,7 @@ export const MembershipPlans = () => {
         throw new Error('No checkout URL returned');
       }
     } catch (error: any) {
+      setError(error.message || 'Failed to start subscription process');
       toast({
         title: 'Subscription Error',
         description: error.message || 'Failed to start subscription process',
@@ -84,6 +103,15 @@ export const MembershipPlans = () => {
             Join our membership program and unlock exclusive savings and benefits
           </p>
         </div>
+        
+        {error && (
+          <Alert variant="destructive" className="mb-6 max-w-lg mx-auto">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}. Please try again or contact support if the issue persists.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan) => (

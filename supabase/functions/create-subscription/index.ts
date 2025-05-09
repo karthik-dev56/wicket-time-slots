@@ -27,6 +27,12 @@ const MEMBERSHIP_PLANS = {
   }
 };
 
+// Helper for detailed logging
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-SUBSCRIPTION] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -34,32 +40,62 @@ serve(async (req) => {
   }
 
   try {
-    const { planType } = await req.json();
+    logStep("Function started");
+    
+    const reqBody = await req.json();
+    const { planType } = reqBody;
     
     if (!planType || !MEMBERSHIP_PLANS[planType]) {
       throw new Error("Invalid membership plan selected");
     }
-
-    // Create Supabase client using the anon key for user authentication.
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
-    // Retrieve authenticated user
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
     
-    if (!user?.email) {
-      throw new Error("User not authenticated or email not available");
+    logStep("Plan type validated", { planType });
+
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase configuration");
     }
 
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    logStep("Supabase client created");
+
+    // Retrieve authenticated user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header provided");
+    }
+    
+    const token = authHeader.replace("Bearer ", "");
+    logStep("Auth token extracted");
+    
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError) {
+      logStep("Authentication error", { message: userError.message });
+      throw new Error(`Authentication error: ${userError.message}`);
+    }
+    
+    const user = userData.user;
+    if (!user?.email) {
+      logStep("User authentication failed - no email available");
+      throw new Error("User not authenticated or email not available");
+    }
+    
+    logStep("User authenticated", { userId: user.id });
+
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("Stripe secret key not configured");
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
     });
+    logStep("Stripe initialized");
 
     // Check if a Stripe customer exists for this user
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -67,6 +103,7 @@ serve(async (req) => {
     
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      logStep("Existing Stripe customer found", { customerId });
     } else {
       // Create a new customer if none exists
       const customer = await stripe.customers.create({
@@ -76,10 +113,12 @@ serve(async (req) => {
         }
       });
       customerId = customer.id;
+      logStep("New Stripe customer created", { customerId });
     }
 
     // Get plan details
     const plan = MEMBERSHIP_PLANS[planType];
+    logStep("Plan details retrieved", { plan });
 
     // Create subscription checkout session
     const session = await stripe.checkout.sessions.create({
@@ -109,15 +148,18 @@ serve(async (req) => {
         plan_type: planType
       },
     });
+    
+    logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error('Subscription error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Subscription error:', errorMessage);
     return new Response(
-      JSON.stringify({ error: error.message || "Error creating subscription checkout" }),
+      JSON.stringify({ error: errorMessage }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
