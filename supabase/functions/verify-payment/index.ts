@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    // Get request body
+    // Get request body with all booking details
     const { sessionId, pitchType, date, timeSlot, price } = await req.json();
     
     if (!sessionId) {
@@ -50,10 +50,8 @@ serve(async (req) => {
       );
     }
 
-    // For now, we're using the data passed from the client
     // In production, you would verify with Stripe using the Stripe API
-    
-    // Use the booking data passed from the client
+    // For now, use the booking details passed from the client
     const bookingMetadata = {
       pitchType: pitchType || "Bowling Machine Lane",
       date: date || new Date().toISOString().split("T")[0],
@@ -61,6 +59,8 @@ serve(async (req) => {
       userId: user.id,
       price: price || 45.00
     };
+
+    console.log("Booking data received:", bookingMetadata);
 
     // Store booking in database
     const { data: bookingData, error: bookingError } = await supabase.from("bookings").insert({

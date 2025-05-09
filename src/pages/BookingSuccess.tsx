@@ -19,9 +19,15 @@ const BookingSuccess = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       try {
-        // Get the session_id from the URL
+        // Get all query parameters from the URL
         const queryParams = new URLSearchParams(location.search);
         const sessionId = queryParams.get('session_id');
+        
+        // Get booking details from URL query parameters if they exist
+        const pitchType = queryParams.get('pitchType');
+        const date = queryParams.get('date');
+        const timeSlot = queryParams.get('timeSlot');
+        const price = queryParams.get('price') ? parseFloat(queryParams.get('price')!) : undefined;
         
         if (!sessionId) {
           setVerificationError('No session ID found in URL');
@@ -29,9 +35,15 @@ const BookingSuccess = () => {
           return;
         }
         
-        // Call our verify-payment function
+        // Call our verify-payment function with all booking details
         const { data, error } = await supabase.functions.invoke('verify-payment', {
-          body: { sessionId },
+          body: { 
+            sessionId,
+            pitchType,
+            date,
+            timeSlot,
+            price
+          },
         });
         
         if (error) {
