@@ -43,6 +43,13 @@ const MEMBERSHIP_BENEFITS = {
   }
 };
 
+// Map price IDs to membership types
+const PRICE_TO_MEMBERSHIP_TYPE: Record<string, string> = {
+  "price_1ROLOLFWkFThYC8LdvkLxCWZ": "premium", // $80/month Premium membership
+  "price_1ROLNOFWkFThYC8LPVBsNxwd": "basic",   // $30/month Basic membership
+  "price_1ROLPJFWkFThYC8LjDLGJWkG": "junior",  // $20/month Junior membership
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -127,17 +134,56 @@ serve(async (req) => {
     const subscription = subscriptions.data[0];
     logStep("Active subscription found", { subscriptionId: subscription.id });
 
-    // Extract membership type from subscription metadata
-    let membershipType = subscription.metadata.plan_type || "basic";
+    // Extract membership type from the subscription's price ID
+    let membershipType = "basic"; // Default fallback
     
-    if (!membershipType || !MEMBERSHIP_BENEFITS[membershipType]) {
+    if (subscription.items.data.length > 0) {
+      const priceId = subscription.items.data[0].price.id;
+      logStep("Retrieved price ID from subscription", { priceId });
+      
+      if (PRICE_TO_MEMBERSHIP_TYPE[priceId]) {
+        membershipType = PRICE_TO_MEMBERSHIP_TYPE[priceId];
+        logStep("Determined membership type from price ID", { membershipType });
+      } else {
+        // If price ID not found in the mapping, check metadata or product information
+        if (subscription.metadata.plan_type) {
+          membershipType = subscription.metadata.plan_type;
+          logStep("Using plan_type from metadata", { membershipType });
+        } else {
+          // Try to get product information to determine the plan
+          try {
+            const priceObj = await stripe.prices.retrieve(priceId);
+            if (priceObj.product && typeof priceObj.product !== 'string') {
+              const productId = priceObj.product.id;
+              const product = await stripe.products.retrieve(productId);
+              
+              // Check product metadata or name to determine membership type
+              if (product.metadata.plan_type) {
+                membershipType = product.metadata.plan_type;
+              } else if (product.name) {
+                const name = product.name.toLowerCase();
+                if (name.includes('premium')) membershipType = 'premium';
+                else if (name.includes('junior')) membershipType = 'junior';
+                else if (name.includes('basic')) membershipType = 'basic';
+              }
+              logStep("Determined membership type from product", { membershipType, productName: product.name });
+            }
+          } catch (e) {
+            logStep("Error retrieving product info", { error: e.message });
+          }
+        }
+      }
+    }
+    
+    // Ensure the membership type is valid
+    if (!MEMBERSHIP_BENEFITS[membershipType as keyof typeof MEMBERSHIP_BENEFITS]) {
       logStep("Invalid membership type, defaulting to basic", { membershipType });
       membershipType = "basic";
     }
     
     // Get membership benefits
-    const benefits = MEMBERSHIP_BENEFITS[membershipType].benefits;
-    const discount = MEMBERSHIP_BENEFITS[membershipType].discount;
+    const benefits = MEMBERSHIP_BENEFITS[membershipType as keyof typeof MEMBERSHIP_BENEFITS].benefits;
+    const discount = MEMBERSHIP_BENEFITS[membershipType as keyof typeof MEMBERSHIP_BENEFITS].discount;
     
     // Calculate renewal date
     const renewalDate = new Date(subscription.current_period_end * 1000).toISOString();

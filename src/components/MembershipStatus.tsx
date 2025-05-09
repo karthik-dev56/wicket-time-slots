@@ -36,6 +36,7 @@ export const MembershipStatus = () => {
         throw new Error(error.message);
       }
       
+      console.log('Membership check response:', data);
       setMembershipDetails(data);
     } catch (err: any) {
       console.error('Error checking membership:', err);
