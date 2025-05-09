@@ -56,7 +56,7 @@ export const MembershipStatus = () => {
   }, []);
 
   const getMembershipColor = (type: string) => {
-    switch(type) {
+    switch(type?.toLowerCase()) {
       case 'premium': return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'junior': return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -64,7 +64,8 @@ export const MembershipStatus = () => {
   };
 
   const getMembershipTitle = (type: string) => {
-    return type.charAt(0).toUpperCase() + type.slice(1) + ' Membership';
+    if (!type) return 'Basic Membership';
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() + ' Membership';
   };
 
   if (isLoading) {
@@ -144,7 +145,7 @@ export const MembershipStatus = () => {
 
         <h3 className="font-medium text-gray-800 mb-2">Your Benefits:</h3>
         <ul className="space-y-2 mb-4">
-          {membershipDetails.benefits.map((benefit: string, index: number) => (
+          {membershipDetails.benefits && membershipDetails.benefits.map((benefit: string, index: number) => (
             <li key={index} className="flex items-start text-sm">
               <CheckCircle className="h-4 w-4 text-cricket-green mr-2 mt-0.5 flex-shrink-0" />
               <span>{benefit}</span>

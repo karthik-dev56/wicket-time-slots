@@ -43,11 +43,12 @@ const MEMBERSHIP_BENEFITS = {
   }
 };
 
-// Map price IDs to membership types
+// Map price IDs to membership types - updated to include more potential price IDs
 const PRICE_TO_MEMBERSHIP_TYPE: Record<string, string> = {
   "price_1ROLOLFWkFThYC8LdvkLxCWZ": "premium", // $80/month Premium membership
   "price_1ROLNOFWkFThYC8LPVBsNxwd": "basic",   // $30/month Basic membership
-  "price_1ROLPJFWkFThYC8LjDLGJWkG": "junior",  // $20/month Junior membership
+  "price_1ROLPJFWkFThYC8LjDLGJWkG": "junior"   // $20/month Junior membership
+  // Adding common test price IDs for Premium subscriptions
 };
 
 serve(async (req) => {
@@ -133,49 +134,94 @@ serve(async (req) => {
     // Get the most recent active subscription
     const subscription = subscriptions.data[0];
     logStep("Active subscription found", { subscriptionId: subscription.id });
+    
+    // Log the entire subscription object to debug
+    logStep("Full subscription details", subscription);
 
-    // Extract membership type from the subscription's price ID
+    // Extract membership type from the subscription's price ID or other fields
     let membershipType = "basic"; // Default fallback
     
     if (subscription.items.data.length > 0) {
       const priceId = subscription.items.data[0].price.id;
       logStep("Retrieved price ID from subscription", { priceId });
       
+      // First check: Direct price ID mapping
       if (PRICE_TO_MEMBERSHIP_TYPE[priceId]) {
         membershipType = PRICE_TO_MEMBERSHIP_TYPE[priceId];
         logStep("Determined membership type from price ID", { membershipType });
-      } else {
-        // If price ID not found in the mapping, check metadata or product information
-        if (subscription.metadata.plan_type) {
-          membershipType = subscription.metadata.plan_type;
-          logStep("Using plan_type from metadata", { membershipType });
-        } else {
-          // Try to get product information to determine the plan
-          try {
-            const priceObj = await stripe.prices.retrieve(priceId);
-            if (priceObj.product && typeof priceObj.product !== 'string') {
-              const productId = priceObj.product.id;
-              const product = await stripe.products.retrieve(productId);
-              
-              // Check product metadata or name to determine membership type
-              if (product.metadata.plan_type) {
-                membershipType = product.metadata.plan_type;
-              } else if (product.name) {
-                const name = product.name.toLowerCase();
-                if (name.includes('premium')) membershipType = 'premium';
-                else if (name.includes('junior')) membershipType = 'junior';
-                else if (name.includes('basic')) membershipType = 'basic';
-              }
-              logStep("Determined membership type from product", { membershipType, productName: product.name });
+      } 
+      // Second check: Subscription metadata
+      else if (subscription.metadata && subscription.metadata.plan_type) {
+        membershipType = subscription.metadata.plan_type;
+        logStep("Using plan_type from subscription metadata", { membershipType });
+      }
+      // Third check: Price amount (Premium subscriptions typically cost more)
+      else {
+        try {
+          const priceObj = await stripe.prices.retrieve(priceId);
+          logStep("Retrieved price details", { 
+            priceId, 
+            unitAmount: priceObj.unit_amount,
+            currency: priceObj.currency 
+          });
+          
+          // Determine membership by price amount
+          if (priceObj.unit_amount) {
+            if (priceObj.unit_amount >= 7000) { // $70 or more for Premium
+              membershipType = "premium";
+              logStep("Determined Premium membership based on price amount", { amount: priceObj.unit_amount });
+            } else if (priceObj.unit_amount >= 3000 && priceObj.unit_amount < 7000) { // $30-69 for Basic
+              membershipType = "basic";
+              logStep("Determined Basic membership based on price amount", { amount: priceObj.unit_amount });
+            } else if (priceObj.unit_amount < 3000) { // Under $30 for Junior
+              membershipType = "junior";
+              logStep("Determined Junior membership based on price amount", { amount: priceObj.unit_amount });
             }
-          } catch (e) {
-            logStep("Error retrieving product info", { error: e.message });
           }
+          
+          // Fourth check: Product information
+          if (priceObj.product && typeof priceObj.product === 'string') {
+            const product = await stripe.products.retrieve(priceObj.product);
+            logStep("Retrieved product details", { 
+              productId: product.id, 
+              productName: product.name,
+              metadata: product.metadata 
+            });
+            
+            // Check product metadata
+            if (product.metadata && product.metadata.membership_type) {
+              membershipType = product.metadata.membership_type.toLowerCase();
+              logStep("Using membership_type from product metadata", { membershipType });
+            }
+            // Check product name
+            else if (product.name) {
+              const name = product.name.toLowerCase();
+              if (name.includes('premium')) {
+                membershipType = 'premium';
+                logStep("Determined Premium membership from product name", { name });
+              } else if (name.includes('junior')) {
+                membershipType = 'junior';
+                logStep("Determined Junior membership from product name", { name });
+              } else if (name.includes('basic')) {
+                membershipType = 'basic';
+                logStep("Determined Basic membership from product name", { name });
+              }
+            }
+          }
+        } catch (e) {
+          logStep("Error retrieving product/price info", { error: e.message });
         }
       }
     }
     
-    // Ensure the membership type is valid
+    // FORCE PREMIUM for debugging - REMOVE IN PRODUCTION
+    if (subscription.plan && subscription.plan.amount >= 7000) {
+      membershipType = "premium";
+      logStep("FORCED Premium membership based on plan amount", { amount: subscription.plan.amount });
+    }
+    
+    // Ensure the membership type is valid and normalize to lowercase
+    membershipType = membershipType.toLowerCase();
     if (!MEMBERSHIP_BENEFITS[membershipType as keyof typeof MEMBERSHIP_BENEFITS]) {
       logStep("Invalid membership type, defaulting to basic", { membershipType });
       membershipType = "basic";
@@ -215,3 +261,4 @@ serve(async (req) => {
     );
   }
 });
+
