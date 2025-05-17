@@ -1,12 +1,8 @@
-
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
-
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
-  
-  return (
-    <footer className="bg-cricket-dark text-white py-12 mt-auto">
+  return <footer className="bg-cricket-dark text-white py-12 mt-auto">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
           <div>
@@ -57,7 +53,7 @@ export const Footer = () => {
             <ul className="space-y-1 text-gray-300">
               <li className="flex items-start">
                 <Clock className="h-4 w-4 mt-1 mr-2" />
-                <span>Monday - Friday: 6am - 11pm</span>
+                <span>Monday - Saturday: 6am - 11pm</span>
               </li>
               <li className="flex items-start">
                 <Clock className="h-4 w-4 mt-1 mr-2" />
@@ -75,7 +71,7 @@ export const Footer = () => {
             <address className="not-italic text-gray-300 space-y-2">
               <p className="flex items-start">
                 <MapPin className="h-4 w-4 mt-1 mr-2" />
-                <span>Unit 2/56 Barretta Rd<br/>Ravenhall VIC 3023<br/>Australia</span>
+                <span>Unit 2/56 Barretta Rd<br />Ravenhall VIC 3023<br />Australia</span>
               </p>
               <p className="flex items-center mt-2">
                 <Phone className="h-4 w-4 mr-2" />
@@ -101,6 +97,5 @@ export const Footer = () => {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
