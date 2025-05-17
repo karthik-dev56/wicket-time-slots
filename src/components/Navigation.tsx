@@ -90,7 +90,7 @@ export const Navigation = () => {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="h-10 w-10 rounded-full bg-cricket-green flex items-center justify-center">
-            <span className="text-white font-bold text-lg">ICC</span>
+            <span className="text-white font-bold text-lg">RIC</span>
           </div>
           <span className="font-bold text-cricket-dark text-xl hidden sm:block">Ravenhall indoor cricket centre</span>
         </Link>
