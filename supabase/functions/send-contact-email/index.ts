@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,8 +37,9 @@ serve(async (req) => {
 
     // Prepare data for Resend API
     const fullName = `${firstName} ${lastName}`;
+    const fixedRecipientEmail = "prokarthik1889@gmail.com"; // Fixed recipient email
     
-    // Send email via Resend
+    // Send email via Resend - to the fixed recipient from the user's email
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -47,9 +47,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Ravenhall Cricket Centre <onboarding@resend.dev>',
-        to: ['info@ravenhallcricket.com'], // Replace with your business email
-        reply_to: email,
+        from: `${fullName} <onboarding@resend.dev>`, // Show sender's name but use verified domain
+        reply_to: email, // Set reply-to as the user's email
+        to: [fixedRecipientEmail], // Fixed recipient
         subject: `Contact Form: ${subject}`,
         html: `
           <h2>New Contact Form Submission</h2>
@@ -73,7 +73,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'Ravenhall Cricket Centre <onboarding@resend.dev>',
-        to: [email],
+        to: [email], // Send to the user's email
         subject: 'We\'ve received your message',
         html: `
           <h2>Thank you for contacting us, ${firstName}!</h2>
