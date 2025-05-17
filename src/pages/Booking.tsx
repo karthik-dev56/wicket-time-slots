@@ -166,7 +166,8 @@ const Booking = () => {
       // Call our Supabase Edge Function to create a checkout session
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          pitchType: pitchTypeName,
+          pitchType, // Send the raw pitch type value (bowlingMachine, normalLane, coaching)
+          pitchTypeName, // Also send the formatted pitch type name
           date: formattedDate,
           timeSlot,
           players,

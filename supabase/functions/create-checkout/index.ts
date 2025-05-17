@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -33,6 +34,7 @@ serve(async (req) => {
   try {
     const { 
       pitchType, 
+      pitchTypeName,
       date, 
       timeSlot, 
       players, 
@@ -42,8 +44,10 @@ serve(async (req) => {
       membershipDiscount
     } = await req.json();
     
-    if (!pitchType) {
-      throw new Error("Pitch type is required");
+    console.log("Received request with pitchType:", pitchType);
+    
+    if (!pitchType || !PRICES[pitchType]) {
+      throw new Error("Invalid pitch type selected");
     }
 
     // Initialize Stripe with secret key from environment
@@ -52,26 +56,10 @@ serve(async (req) => {
     });
     
     // Get the price amount for the selected pitch type
-    let priceAmount = PRICES[pitchType as keyof typeof PRICES];
-    if (!priceAmount) {
-      throw new Error("Invalid pitch type selected");
-    }
+    let priceAmount = PRICES[pitchType];
     
     // Format the pitch name for display
-    let pitchName;
-    switch (pitchType) {
-      case "bowlingMachine":
-        pitchName = "Bowling Machine Lane";
-        break;
-      case "normalLane":
-        pitchName = "Normal Practice Lane";
-        break;
-      case "coaching":
-        pitchName = "Coaching Session";
-        break;
-      default:
-        pitchName = "Cricket Pitch";
-    }
+    let pitchName = pitchTypeName || "Cricket Pitch";
     
     // Apply discounts if applicable
     let description = `Booking for ${date} at ${timeSlot}`;
@@ -147,10 +135,11 @@ serve(async (req) => {
       ],
       mode: "payment",
       // Add booking details to the success URL
-      success_url: `${req.headers.get("origin")}/booking-success?session_id={CHECKOUT_SESSION_ID}&pitchType=${encodeURIComponent(pitchType)}&date=${encodeURIComponent(date)}&timeSlot=${encodeURIComponent(timeSlot)}&price=${priceAmount/100}`,
+      success_url: `${req.headers.get("origin")}/booking-success?session_id={CHECKOUT_SESSION_ID}&pitchType=${encodeURIComponent(pitchTypeName || pitchName)}&date=${encodeURIComponent(date)}&timeSlot=${encodeURIComponent(timeSlot)}&price=${priceAmount/100}`,
       cancel_url: `${req.headers.get("origin")}/booking`,
       metadata: {
         pitchType,
+        pitchTypeName: pitchTypeName || pitchName,
         date,
         timeSlot,
         players: players?.toString() || "1",
