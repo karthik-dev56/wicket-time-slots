@@ -1,5 +1,6 @@
 
 import { Link } from 'react-router-dom';
+import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -11,9 +12,9 @@ export const Footer = () => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="h-10 w-10 rounded-full bg-cricket-green flex items-center justify-center">
-                <span className="text-white font-bold text-lg">ICC</span>
+                <span className="text-white font-bold text-lg">RIC</span>
               </div>
-              <span className="font-bold text-white text-xl">Indoor Cricket Centre</span>
+              <span className="font-bold text-white text-xl">Ravenhall Indoor Cricket</span>
             </div>
             <p className="text-gray-300 mt-2">
               Premier indoor cricket facility offering state-of-the-art pitches for practice and matches.
@@ -43,32 +44,53 @@ export const Footer = () => {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link to="/rules" className="text-gray-300 hover:text-cricket-yellow transition-colors">
+                  Facility Rules
+                </Link>
+              </li>
             </ul>
           </div>
           
           <div>
             <h3 className="font-bold text-xl mb-4">Opening Hours</h3>
-            <ul className="space-y-2 text-gray-300">
-              <li>Monday - Friday: 9am - 10pm</li>
-              <li>Saturday: 8am - 10pm</li>
-              <li>Sunday: 8am - 8pm</li>
+            <ul className="space-y-1 text-gray-300">
+              <li className="flex items-start">
+                <Clock className="h-4 w-4 mt-1 mr-2" />
+                <span>Monday - Friday: 6am - 11pm</span>
+              </li>
+              <li className="flex items-start">
+                <Clock className="h-4 w-4 mt-1 mr-2" />
+                <span>Saturday: 6am - 11pm</span>
+              </li>
+              <li className="flex items-start">
+                <Clock className="h-4 w-4 mt-1 mr-2" />
+                <span>Sunday: 9am - 8pm</span>
+              </li>
             </ul>
           </div>
           
           <div>
             <h3 className="font-bold text-xl mb-4">Contact Us</h3>
             <address className="not-italic text-gray-300 space-y-2">
-              <p>123 Cricket Lane</p>
-              <p>Birmingham, B1 1AA</p>
-              <p>United Kingdom</p>
-              <p className="mt-2">Phone: 01234 567890</p>
-              <p>Email: info@indoorcricket.com</p>
+              <p className="flex items-start">
+                <MapPin className="h-4 w-4 mt-1 mr-2" />
+                <span>Unit 2/56 Barretta Rd<br/>Ravenhall VIC 3023<br/>Australia</span>
+              </p>
+              <p className="flex items-center mt-2">
+                <Phone className="h-4 w-4 mr-2" />
+                <span>+61 490 703 772</span>
+              </p>
+              <p className="flex items-center">
+                <Mail className="h-4 w-4 mr-2" />
+                <span>info@ravenhallcricket.com</span>
+              </p>
             </address>
           </div>
         </div>
         
         <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center">
-          <p className="text-gray-300">© {currentYear} Indoor Cricket Centre. All rights reserved.</p>
+          <p className="text-gray-300">© {currentYear} Ravenhall Indoor Cricket Centre. All rights reserved.</p>
           <div className="flex gap-4 mt-4 sm:mt-0">
             <Link to="/terms" className="text-gray-300 hover:text-cricket-yellow transition-colors">
               Terms of Service

@@ -50,12 +50,39 @@ serve(async (req) => {
       );
     }
 
+    // Check if the time slot is already booked
+    const { data: existingBookings, error: bookingCheckError } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("date", date)
+      .eq("time", timeSlot)
+      .eq("pitch_type", pitchType)
+      .eq("status", "upcoming");
+      
+    if (bookingCheckError) {
+      console.error("Error checking existing bookings:", bookingCheckError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to check availability" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+    
+    if (existingBookings && existingBookings.length > 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "This time slot has been booked by someone else. Please select a different time."
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
+      );
+    }
+
     // In production, you would verify with Stripe using the Stripe API
     // For now, use the booking details passed from the client
     const bookingMetadata = {
       pitchType: pitchType || "Bowling Machine Lane",
       date: date || new Date().toISOString().split("T")[0],
-      timeSlot: timeSlot || "3:00 PM - 4:00 PM",
+      timeSlot: timeSlot || "3:00 PM - 3:30 PM",
       userId: user.id,
       price: price || 45.00
     };

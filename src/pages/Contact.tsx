@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 const Contact = () => {
   const { toast } = useToast();
@@ -95,25 +97,31 @@ const Contact = () => {
                 <Card>
                   <CardContent className="p-6 space-y-4">
                     <div>
-                      <h3 className="font-semibold text-lg mb-2">Address</h3>
+                      <h3 className="font-semibold text-lg mb-2 flex items-center">
+                        <MapPin className="h-4 w-4 mr-2" />Address
+                      </h3>
                       <address className="not-italic text-gray-600">
-                        123 Cricket Lane<br />
-                        Birmingham, B1 1AA<br />
-                        United Kingdom
+                        Unit 2/56 Barretta Rd<br />
+                        Ravenhall VIC 3023<br />
+                        Australia
                       </address>
                     </div>
                     
                     <div>
-                      <h3 className="font-semibold text-lg mb-2">Contact Details</h3>
-                      <p className="text-gray-600">Phone: 01234 567890</p>
-                      <p className="text-gray-600">Email: info@indoorcricket.com</p>
+                      <h3 className="font-semibold text-lg mb-2 flex items-center">
+                        <Phone className="h-4 w-4 mr-2" />Contact Details
+                      </h3>
+                      <p className="text-gray-600">Phone: +61 490 703 772</p>
+                      <p className="text-gray-600">Email: info@ravenhallcricket.com</p>
                     </div>
                     
                     <div>
-                      <h3 className="font-semibold text-lg mb-2">Opening Hours</h3>
-                      <p className="text-gray-600">Monday - Friday: 9am - 10pm</p>
-                      <p className="text-gray-600">Saturday: 8am - 10pm</p>
-                      <p className="text-gray-600">Sunday: 8am - 8pm</p>
+                      <h3 className="font-semibold text-lg mb-2 flex items-center">
+                        <Clock className="h-4 w-4 mr-2" />Opening Hours
+                      </h3>
+                      <p className="text-gray-600">Monday - Friday: 6am - 11pm</p>
+                      <p className="text-gray-600">Saturday: 6am - 11pm</p>
+                      <p className="text-gray-600">Sunday: 9am - 8pm</p>
                     </div>
                   </CardContent>
                 </Card>

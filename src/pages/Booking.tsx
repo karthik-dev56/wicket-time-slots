@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,8 @@ const Booking = () => {
   const [bookingError, setBookingError] = useState<string>("");
   const [membershipStatus, setMembershipStatus] = useState<any>(null);
   const [isFetchingMembership, setIsFetchingMembership] = useState<boolean>(false);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
   const { toast } = useToast();
 
   // Check membership status when component mounts
@@ -60,6 +63,45 @@ const Booking = () => {
     
     checkMembershipStatus();
   }, [toast]);
+
+  // Fetch booked slots whenever date or pitchType changes
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      if (!date || !pitchType) return;
+      
+      try {
+        setIsLoadingSlots(true);
+        const formattedDate = format(date, 'yyyy-MM-dd');
+        
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('time')
+          .eq('date', formattedDate)
+          .eq('pitch_type', 
+            pitchType === 'bowlingMachine' ? 'Bowling Machine Lane' : 
+            pitchType === 'normalLane' ? 'Normal Practice Lane' : 'Coaching Session'
+          )
+          .eq('status', 'upcoming');
+          
+        if (error) throw error;
+        
+        // Extract time slots that are already booked
+        const booked = data.map(booking => booking.time);
+        setBookedSlots(booked);
+      } catch (error) {
+        console.error('Error fetching booked slots:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch available time slots. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+    
+    fetchBookedSlots();
+  }, [date, pitchType, toast]);
 
   // Check if the selected time is eligible for early bird discount
   useEffect(() => {
@@ -116,10 +158,15 @@ const Booking = () => {
       
       const formattedDate = date ? format(date, 'yyyy-MM-dd') : '';
       
+      // Get the actual pitch type name for storing in the database
+      const pitchTypeName = 
+        pitchType === 'bowlingMachine' ? 'Bowling Machine Lane' : 
+        pitchType === 'normalLane' ? 'Normal Practice Lane' : 'Coaching Session';
+      
       // Call our Supabase Edge Function to create a checkout session
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          pitchType,
+          pitchType: pitchTypeName,
           date: formattedDate,
           timeSlot,
           players,
@@ -154,20 +201,48 @@ const Booking = () => {
     }
   };
 
-  const timeSlots = [
-    '9:00 AM - 10:00 AM',
-    '10:00 AM - 11:00 AM',
-    '11:00 AM - 12:00 PM',
-    '12:00 PM - 1:00 PM',
-    '1:00 PM - 2:00 PM',
-    '2:00 PM - 3:00 PM',
-    '3:00 PM - 4:00 PM',
-    '4:00 PM - 5:00 PM',
-    '5:00 PM - 6:00 PM',
-    '6:00 PM - 7:00 PM',
-    '7:00 PM - 8:00 PM',
-    '8:00 PM - 9:00 PM',
-  ];
+  // Generate 30-minute time slots based on opening hours
+  const generateTimeSlots = () => {
+    const slots = [];
+    const dayOfWeek = date ? date.getDay() : -1; // -1 if no date selected
+    
+    // Set start and end times based on day of week
+    // Sunday = 0, Monday = 1, ..., Saturday = 6
+    let startHour = 0;
+    let endHour = 0;
+    
+    if (dayOfWeek === 0) {
+      // Sunday
+      startHour = 9;
+      endHour = 20; // 8 PM
+    } else {
+      // Monday to Saturday
+      startHour = 6;
+      endHour = 23; // 11 PM
+    }
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+      const isPM = hour >= 12;
+      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      const hourStr = `${hour12}:00 ${isPM ? 'PM' : 'AM'}`;
+      const halfHourStr = `${hour12}:30 ${isPM ? 'PM' : 'AM'}`;
+      
+      // For full hour slots (e.g., 1:00 PM - 1:30 PM)
+      slots.push(`${hourStr} - ${halfHourStr}`);
+      
+      // For half hour slots (e.g., 1:30 PM - 2:00 PM)
+      if (hour < endHour - 1) {
+        const nextHour = hour + 1;
+        const nextIsPM = nextHour >= 12;
+        const nextHour12 = nextHour === 0 ? 12 : nextHour > 12 ? nextHour - 12 : nextHour;
+        const nextHourStr = `${nextHour12}:00 ${nextIsPM ? 'PM' : 'AM'}`;
+        
+        slots.push(`${halfHourStr} - ${nextHourStr}`);
+      }
+    }
+    
+    return slots;
+  };
 
   // Calculate price with discounts
   const calculatePrice = () => {
@@ -251,7 +326,10 @@ const Booking = () => {
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="pitch-type">Pitch Type</Label>
-                    <Select value={pitchType} onValueChange={setPitchType}>
+                    <Select value={pitchType} onValueChange={(value) => {
+                      setPitchType(value);
+                      setTimeSlot(""); // Reset time slot when pitch type changes
+                    }}>
                       <SelectTrigger id="pitch-type">
                         <SelectValue placeholder="Select a pitch type" />
                       </SelectTrigger>
@@ -269,7 +347,10 @@ const Booking = () => {
                       <Calendar
                         mode="single"
                         selected={date}
-                        onSelect={setDate}
+                        onSelect={(newDate) => {
+                          setDate(newDate);
+                          setTimeSlot(""); // Reset time slot when date changes
+                        }}
                         disabled={(date) => {
                           // Disable dates in the past
                           const today = new Date();
@@ -286,19 +367,38 @@ const Booking = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="time-slot">Time Slot</Label>
-                    <Select value={timeSlot} onValueChange={setTimeSlot}>
+                    <Label htmlFor="time-slot">Time Slot (30-minute intervals)</Label>
+                    <Select value={timeSlot} onValueChange={setTimeSlot} disabled={!date || !pitchType || isLoadingSlots}>
                       <SelectTrigger id="time-slot">
-                        <SelectValue placeholder="Select a time slot" />
+                        <SelectValue placeholder={isLoadingSlots ? "Loading available slots..." : "Select a time slot"} />
                       </SelectTrigger>
-                      <SelectContent>
-                        {timeSlots.map((slot) => (
-                          <SelectItem key={slot} value={slot}>
-                            {slot}
+                      <SelectContent className="max-h-[300px]">
+                        {date && pitchType && generateTimeSlots().map((slot) => {
+                          const isBooked = bookedSlots.includes(slot);
+                          return (
+                            <SelectItem 
+                              key={slot} 
+                              value={slot} 
+                              disabled={isBooked}
+                              className={isBooked ? "opacity-50 line-through" : ""}
+                            >
+                              {slot} {isBooked ? "(Booked)" : ""}
+                            </SelectItem>
+                          );
+                        })}
+                        {(!date || !pitchType) && (
+                          <SelectItem value="placeholder" disabled>
+                            Please select a date and pitch type first
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
+                    {isLoadingSlots && (
+                      <div className="flex items-center justify-center py-2">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span className="text-sm text-gray-500">Loading available slots...</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -377,7 +477,7 @@ const Booking = () => {
                   <Button 
                     className="w-full bg-cricket-green hover:bg-cricket-green-light" 
                     onClick={handleBookingSubmit}
-                    disabled={isLoading || isFetchingMembership}
+                    disabled={isLoading || isFetchingMembership || !date || !pitchType || !timeSlot}
                   >
                     {isLoading ? (
                       <>

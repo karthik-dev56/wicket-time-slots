@@ -21,6 +21,10 @@ export const BookingPolicy = () => {
             
             <ul className="list-disc pl-5 space-y-2">
               <li>
+                <span className="font-medium">Time slots are in 30-minute intervals</span> for your convenience
+                and flexibility.
+              </li>
+              <li>
                 <span className="font-medium">Payment required in advance</span> (online or at the counter).
               </li>
               <li>
@@ -33,6 +37,9 @@ export const BookingPolicy = () => {
               <li>
                 <span className="font-medium">Group discounts:</span> 10% discount available for 
                 groups of 5 or more players.
+              </li>
+              <li>
+                <span className="font-medium">Early bird discount:</span> 15% off for weekday bookings before 4 PM.
               </li>
             </ul>
             
