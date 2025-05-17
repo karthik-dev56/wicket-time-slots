@@ -60,7 +60,7 @@ export const Footer = () => {
                 <span>Sunday: 9am - 8pm</span>
               </li>
               <li className="flex items-start">
-                <Clock className="h-4 w-4 mt-1 mr-2" />
+                
                 <span></span>
               </li>
             </ul>
