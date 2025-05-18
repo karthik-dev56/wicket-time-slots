@@ -1,3 +1,4 @@
+
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ const Pitches = () => {
       id: 1,
       title: 'Bowling Machine Lane',
       description: 'Professional practice with our state-of-the-art bowling machines for perfecting your technique.',
-      image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://i.ibb.co/3mCR33hX/IMG-20250517-WA0007.jpg',
       price: '$45/hour',
       features: [
         'Professional bowling machines',
