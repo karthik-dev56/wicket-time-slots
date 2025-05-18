@@ -40,7 +40,7 @@ const Pitches = () => {
       id: 3,
       title: 'Coaching Sessions',
       description: 'Personalized training with experienced cricket coaches to improve your skills.',
-      image: 'https://images.unsplash.com/photo-1624765434852-66678c237697?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://i.ibb.co/39s908zm/IMG-20250517-WA0011.jpg',
       price: '$60/hour',
       features: [
         'Personalized training',
