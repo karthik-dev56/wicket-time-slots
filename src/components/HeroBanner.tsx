@@ -6,7 +6,7 @@ export const HeroBanner = () => {
   return (
     <section className="relative bg-cricket-dark text-white py-16 md:py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-cricket-dark to-cricket-green opacity-80 z-0"></div>
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1531415074968-036ba1b575da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1767&q=80')] bg-cover bg-center mix-blend-overlay z-0"></div>
+      <div className="absolute inset-0 bg-[url('https://i.ibb.co/rGFCLbdj/Ravenhall-Indoor-Cricket-Centre-bg-scaled.jpg')] bg-cover bg-center mix-blend-overlay z-0"></div>
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-3xl animate-fade-in">
