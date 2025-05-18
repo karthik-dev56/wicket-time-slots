@@ -17,7 +17,7 @@ export const FeaturedPitches = () => {
       id: 2,
       title: 'Normal Practice Lane',
       description: 'Standard cricket lanes for practice sessions, casual play, and friendly matches.',
-      image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
+      image: 'https://i.ibb.co/S4gR8JCM/IMG-20250517-WA0015.jpg',
       price: '$40/hour',
       features: ['Basic equipment provided', 'Suitable for all skill levels', 'Flexible booking times']
     },
