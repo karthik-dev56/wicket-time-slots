@@ -9,7 +9,7 @@ export const FeaturedPitches = () => {
       id: 1,
       title: 'Bowling Machine Lane',
       description: 'Professional practice with our state-of-the-art bowling machines for perfecting your technique.',
-      image: 'https://i.ibb.co/3mCR33hX/IMG-20250517-WA0007.jpg',
+      image: 'https://i.ibb.co/S4gR8JCM/IMG-20250517-WA0015.jpg',
       price: '$45/hour',
       features: ['Professional bowling machines', 'Speed and spin control', 'Performance analysis']
     },
