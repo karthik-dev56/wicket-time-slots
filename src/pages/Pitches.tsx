@@ -1,4 +1,3 @@
-
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,21 +48,6 @@ const Pitches = () => {
         'Video analysis included',
         'Performance tracking',
         'Technique refinement'
-      ]
-    },
-    {
-      id: 4,
-      title: 'Junior Development Pitch',
-      description: 'Specially designed for young cricketers aged 7-15. Child-friendly equipment and simplified playing area to develop core skills.',
-      image: 'https://images.unsplash.com/photo-1587397845856-e6cf49176c70?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2148&q=80',
-      price: '$30/hour',
-      features: [
-        'Child-sized equipment',
-        'Safe playing environment',
-        'Junior coaching available',
-        'Simplified pitch layout',
-        'Parent viewing area',
-        'Development programs'
       ]
     }
   ];
