@@ -78,8 +78,8 @@ export const Footer = () => {
                 <span>+61 490 703 772</span>
               </p>
               <p className="flex items-center">
-                <Mail className="h-4 w-4 mr-2" />
-                <span>info@ravenhallcricket.com</span>
+                
+                
               </p>
             </address>
           </div>
@@ -88,12 +88,8 @@ export const Footer = () => {
         <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center">
           <p className="text-gray-300">© {currentYear} Ravenhall Indoor Cricket Centre. All rights reserved.</p>
           <div className="flex gap-4 mt-4 sm:mt-0">
-            <Link to="/terms" className="text-gray-300 hover:text-cricket-yellow transition-colors">
-              Terms of Service
-            </Link>
-            <Link to="/privacy" className="text-gray-300 hover:text-cricket-yellow transition-colors">
-              Privacy Policy
-            </Link>
+            
+            
           </div>
         </div>
       </div>
