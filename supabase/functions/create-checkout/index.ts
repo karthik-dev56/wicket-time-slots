@@ -15,9 +15,9 @@ const PRICES = {
   coaching: 6000 // $60.00 in cents
 };
 
-// Define discounts
-const DISCOUNTS = {
-  groupDiscount: 0.1, // 10% discount for groups of 5+
+// Define discounts and fees
+const PRICING_ADJUSTMENTS = {
+  groupFee: 0.1, // 10% extra fee for groups of 5+
   earlyBird: 0.15, // 15% off before 4 PM on weekdays
   weekend: 7000, // $70 for 2 hours (Weekend Family Package)
   basic: 0.1, // 10% for basic membership
@@ -75,7 +75,7 @@ serve(async (req) => {
     
     // Apply discounts if applicable
     let description = `Booking for ${date} with ${totalSlots} time slot${totalSlots > 1 ? 's' : ''}: ${slots.join(', ')}`;
-    let discountsApplied = [];
+    let adjustmentsApplied = [];
     
     // Check if premium member is using their free hour
     let isFreeHour = false;
@@ -86,17 +86,17 @@ serve(async (req) => {
       if (hasFreeHourAvailable) {
         basePrice = 0;
         isFreeHour = true;
-        discountsApplied.push("Premium member free hour");
+        adjustmentsApplied.push("Premium member free hour");
         description += " (Premium member free hour)";
       }
     }
     
-    // Only apply other discounts if it's not a free hour
+    // Only apply other adjustments if it's not a free hour
     if (!isFreeHour) {
       // Apply weekend package if selected (fixed price regardless of slots)
       if (isWeekendPackage && pitchType === "normalLane") {
-        basePrice = DISCOUNTS.weekend;
-        discountsApplied.push("Weekend Family Package: 2 hours for $70");
+        basePrice = PRICING_ADJUSTMENTS.weekend;
+        adjustmentsApplied.push("Weekend Family Package: 2 hours for $70");
       } else {
         // Apply membership discount if applicable
         if (membershipType && membershipDiscount) {
@@ -104,26 +104,26 @@ serve(async (req) => {
           if (!(membershipType === "basic" && pitchType === "bowlingMachine")) {
             const discountRate = membershipDiscount / 100;
             basePrice = Math.round(basePrice * (1 - discountRate));
-            discountsApplied.push(`${membershipType} membership: ${membershipDiscount}% off`);
+            adjustmentsApplied.push(`${membershipType} membership: ${membershipDiscount}% off`);
           }
         }
 
-        // Apply group discount if 5+ players
+        // Apply group fee if 5+ players (10% extra)
         if (players && players >= 5) {
-          basePrice = Math.round(basePrice * (1 - DISCOUNTS.groupDiscount));
-          discountsApplied.push("Group discount: 10% off");
+          basePrice = Math.round(basePrice * (1 + PRICING_ADJUSTMENTS.groupFee));
+          adjustmentsApplied.push("Group fee: 10% extra for 5+ players");
         }
         
         // Apply early bird discount if applicable (before 4 PM on weekdays)
         if (isEarlyBird) {
-          basePrice = Math.round(basePrice * (1 - DISCOUNTS.earlyBird));
-          discountsApplied.push("Early bird: 15% off");
+          basePrice = Math.round(basePrice * (1 - PRICING_ADJUSTMENTS.earlyBird));
+          adjustmentsApplied.push("Early bird: 15% off");
         }
       }
     }
     
-    if (discountsApplied.length > 0) {
-      description += ` (${discountsApplied.join(', ')})`;
+    if (adjustmentsApplied.length > 0) {
+      description += ` (${adjustmentsApplied.join(', ')})`;
     }
     
     // Serialize the time slots array to string for URL params
@@ -158,7 +158,7 @@ serve(async (req) => {
         isEarlyBird: isEarlyBird ? "true" : "false",
         isWeekendPackage: isWeekendPackage ? "true" : "false",
         membershipType: membershipType || "",
-        discountsApplied: discountsApplied.join(", "),
+        adjustmentsApplied: adjustmentsApplied.join(", "),
         isFreeHour: isFreeHour ? "true" : "false"
       },
     });

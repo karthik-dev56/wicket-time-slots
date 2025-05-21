@@ -363,7 +363,7 @@ const Booking = () => {
     });
   };
 
-  // Calculate price with discounts
+  // Calculate price with fees and discounts
   const calculatePrice = () => {
     if (!pitchType) return "$0.00";
     
@@ -380,9 +380,9 @@ const Booking = () => {
       }
     }
     
-    // Apply group discount if 5+ players
+    // Apply group fee if 5+ players (10% extra)
     if (players >= 5) {
-      price = price * 0.9; // 10% off
+      price = price * 1.1; // 10% extra
     }
     
     // Apply early bird discount if applicable
@@ -596,7 +596,7 @@ const Booking = () => {
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                           <SelectItem key={num} value={num.toString()}>
                             {num} {num === 1 ? 'player' : 'players'}
-                            {num >= 5 ? ' (10% group discount)' : ''}
+                            {num >= 5 ? ' (10% extra fee)' : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -630,10 +630,10 @@ const Booking = () => {
                   )}
                   
                   {players >= 5 && (
-                    <div className="bg-green-50 p-3 rounded-md border border-green-200">
-                      <p className="text-green-800 text-sm flex items-center">
-                        <span className="mr-2 text-green-600">✓</span>
-                        Group Discount Applied (10% off for 5+ players)
+                    <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                      <p className="text-yellow-800 text-sm flex items-center">
+                        <span className="mr-2 text-yellow-600">!</span>
+                        Group Fee Applied (10% extra for 5+ players)
                       </p>
                     </div>
                   )}
@@ -720,7 +720,7 @@ const Booking = () => {
                     <p className="text-sm text-gray-500">Players</p>
                     <p className="font-medium">
                       {players} {players === 1 ? 'player' : 'players'}
-                      {players >= 5 && <span className="text-green-600 ml-2">(Group discount)</span>}
+                      {players >= 5 && <span className="text-yellow-600 ml-2">(Group fee applies)</span>}
                     </p>
                   </div>
                   
@@ -731,10 +731,10 @@ const Booking = () => {
                     </p>
                     {(isEarlyBird || players >= 5 || isWeekendPackage || membershipStatus?.active) && (
                       <div className="text-sm text-gray-500 mt-1">
-                        <p>Discounts applied:</p>
+                        <p>Adjustments applied:</p>
                         <ul className="list-disc pl-5 space-y-1 mt-1">
                           {isEarlyBird && <li>15% Early Bird Discount</li>}
-                          {players >= 5 && <li>10% Group Discount</li>}
+                          {players >= 5 && <li>10% Group Fee (for 5+ players)</li>}
                           {isWeekendPackage && pitchType === 'normalLane' && <li>Weekend Family Package</li>}
                           {membershipStatus?.active && (
                             <li>
