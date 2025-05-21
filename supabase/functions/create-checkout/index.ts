@@ -151,15 +151,6 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/booking`,
       locale: 'en', // Use English language
       billing_address_collection: 'auto', // Collect billing address
-      // Set default country to Australia (using a supported method)
-      payment_method_options: {
-        card: {
-          setup_future_usage: null
-        }
-      },
-      default_address: {
-        country: 'AU'
-      },
       metadata: {
         pitchType,
         pitchTypeName: pitchTypeName || pitchName,
