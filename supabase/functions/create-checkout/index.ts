@@ -126,6 +126,9 @@ serve(async (req) => {
       description += ` (${discountsApplied.join(', ')})`;
     }
     
+    // Serialize the time slots array to string for URL params
+    const timeSlotsParam = JSON.stringify(slots);
+    
     // Create a Checkout session with inline price creation
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -143,8 +146,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      // Add booking details to the success URL
-      success_url: `${req.headers.get("origin")}/booking-success?session_id={CHECKOUT_SESSION_ID}&pitchType=${encodeURIComponent(pitchTypeName || pitchName)}&date=${encodeURIComponent(date)}&timeSlots=${encodeURIComponent(JSON.stringify(slots))}&price=${basePrice/100}`,
+      // Add booking details to the success URL, properly encoding the time slots
+      success_url: `${req.headers.get("origin")}/booking-success?session_id={CHECKOUT_SESSION_ID}&pitchType=${encodeURIComponent(pitchTypeName || pitchName)}&date=${encodeURIComponent(date)}&timeSlots=${encodeURIComponent(timeSlotsParam)}&price=${basePrice/100}`,
       cancel_url: `${req.headers.get("origin")}/booking`,
       metadata: {
         pitchType,

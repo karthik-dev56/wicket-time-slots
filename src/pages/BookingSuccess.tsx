@@ -29,16 +29,18 @@ const BookingSuccess = () => {
         const pitchType = queryParams.get('pitchType');
         const date = queryParams.get('date');
         
-        // Get timeSlot(s) - could be single or multiple
-        const timeSlotParam = queryParams.get('timeSlot');
+        // Get timeSlots - parse the JSON string from URL parameter
+        const timeSlotsParam = queryParams.get('timeSlots');
         let timeSlots = [];
         
-        if (timeSlotParam) {
-          // If it's a comma-separated string, split it
-          if (timeSlotParam.includes(',')) {
-            timeSlots = timeSlotParam.split(',');
-          } else {
-            timeSlots = [timeSlotParam];
+        if (timeSlotsParam) {
+          try {
+            timeSlots = JSON.parse(timeSlotsParam);
+            console.log("Parsed time slots:", timeSlots);
+          } catch (e) {
+            console.error("Error parsing time slots:", e);
+            // Fallback - try to use it as a single string
+            timeSlots = [timeSlotsParam];
           }
         }
         
@@ -50,6 +52,14 @@ const BookingSuccess = () => {
           return;
         }
         
+        console.log("Verifying payment with:", { 
+          sessionId, 
+          pitchType, 
+          date, 
+          timeSlots, 
+          price 
+        });
+        
         // Call our verify-payment function with all booking details
         const { data, error } = await supabase.functions.invoke('verify-payment', {
           body: { 
@@ -60,6 +70,8 @@ const BookingSuccess = () => {
             price
           },
         });
+        
+        console.log("Verification response:", data, error);
         
         if (error) {
           throw new Error(error.message);

@@ -17,6 +17,8 @@ serve(async (req) => {
     // Get request body with all booking details
     const { sessionId, pitchType, date, timeSlots, price } = await req.json();
     
+    console.log("Verify payment received:", { sessionId, pitchType, date, timeSlots, price });
+    
     if (!sessionId) {
       return new Response(
         JSON.stringify({ success: false, error: "No session ID provided" }),
@@ -50,8 +52,25 @@ serve(async (req) => {
       );
     }
 
-    // Ensure timeSlots is an array, even if a single string is passed
-    const timeSlotsArray = Array.isArray(timeSlots) ? timeSlots : timeSlots ? [timeSlots] : [];
+    // Parse time slots properly
+    let timeSlotsArray: string[] = [];
+    
+    if (timeSlots) {
+      if (Array.isArray(timeSlots)) {
+        timeSlotsArray = timeSlots;
+      } else if (typeof timeSlots === 'string') {
+        // Handle timeSlots as a JSON string (from URL parameters)
+        try {
+          const parsed = JSON.parse(timeSlots);
+          timeSlotsArray = Array.isArray(parsed) ? parsed : [timeSlots];
+        } catch (e) {
+          // If it's not valid JSON, treat it as a single time slot
+          timeSlotsArray = [timeSlots];
+        }
+      }
+    }
+    
+    console.log("Processed time slots:", timeSlotsArray);
     
     // Check if we have valid time slots
     if (!timeSlotsArray.length) {
@@ -100,7 +119,7 @@ serve(async (req) => {
       price: price || 45.00
     };
 
-    console.log("Booking data received:", bookingMetadata);
+    console.log("Booking data prepared:", bookingMetadata);
 
     // Store bookings in database (one entry per time slot)
     const bookingEntries = timeSlotsArray.map(timeSlot => ({
@@ -112,6 +131,8 @@ serve(async (req) => {
       booking_date: new Date().toISOString(),
       status: 'upcoming'
     }));
+    
+    console.log("Booking entries to insert:", bookingEntries);
     
     const { data: bookingData, error: bookingError } = await supabase
       .from("bookings")
@@ -126,6 +147,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Booking successful, returning data");
+    
     return new Response(
       JSON.stringify({
         success: true,
