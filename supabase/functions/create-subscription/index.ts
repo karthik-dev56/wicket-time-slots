@@ -143,6 +143,9 @@ serve(async (req) => {
       mode: 'subscription',
       success_url: `${req.headers.get("origin")}/membership-success?session_id={CHECKOUT_SESSION_ID}&plan=${planType}`,
       cancel_url: `${req.headers.get("origin")}/#membership-plans`,
+      locale: 'en', // Use English language
+      billing_address_collection: 'auto', // Collect billing address
+      default_country: 'AU', // Set Australia as the default country
       metadata: {
         user_id: user.id,
         plan_type: planType

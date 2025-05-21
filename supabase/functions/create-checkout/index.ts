@@ -149,6 +149,10 @@ serve(async (req) => {
       // Add booking details to the success URL, properly encoding the time slots
       success_url: `${req.headers.get("origin")}/booking-success?session_id={CHECKOUT_SESSION_ID}&pitchType=${encodeURIComponent(pitchTypeName || pitchName)}&date=${encodeURIComponent(date)}&timeSlots=${encodeURIComponent(timeSlotsParam)}&price=${basePrice/100}`,
       cancel_url: `${req.headers.get("origin")}/booking`,
+      locale: 'en', // Use English language
+      billing_address_collection: 'auto', // Collect billing address
+      customer_email: null, // Let user enter their email
+      default_country: 'AU', // Set Australia as the default country
       metadata: {
         pitchType,
         pitchTypeName: pitchTypeName || pitchName,
