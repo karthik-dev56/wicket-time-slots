@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -517,8 +518,13 @@ const Booking = () => {
                     
                     {selectedTimeSlots.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {selectedTimeSlots.map((slot, index) => (
-                          <Badge key={`selected-${index}-${slot}`} variant="secondary" className="flex items-center gap-1">
+                        {/* Fix: Use a unique identifier for each selected slot badge */}
+                        {selectedTimeSlots.map((slot) => (
+                          <Badge 
+                            key={`selected-${slot}`} 
+                            variant="secondary" 
+                            className="flex items-center gap-1"
+                          >
                             {slot}
                             <button 
                               type="button"
@@ -541,13 +547,14 @@ const Booking = () => {
                       ) : (
                         <div className="p-2">
                           {date && pitchType ? (
-                            generateTimeSlots().map((slot, index) => {
+                            generateTimeSlots().map((slot) => {
                               const isBooked = bookedSlots.includes(slot);
                               const isSelected = selectedTimeSlots.includes(slot);
                               
+                              // Fix: Use the slot as part of the key to ensure uniqueness
                               return (
                                 <div 
-                                  key={`slot-${index}-${slot}`}
+                                  key={`slot-${slot}`}
                                   className={`
                                     flex items-center p-2 mb-1 rounded-md cursor-pointer
                                     ${isBooked ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 
