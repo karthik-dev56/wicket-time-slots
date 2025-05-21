@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { Loader2, Info, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Define price mapping
 const PRICES = {
@@ -36,6 +37,7 @@ const Booking = () => {
   const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
   const { toast } = useToast();
   const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
+  const timeSlotsScrollRef = useRef<HTMLDivElement>(null);
 
   // Check membership status when component mounts
   useEffect(() => {
@@ -258,7 +260,7 @@ const Booking = () => {
     return slots;
   };
 
-  // Updated handleTimeSlotToggle function to ensure unique entries in the array
+  // Updated handleTimeSlotToggle function with scroll position preservation
   const handleTimeSlotToggle = (slot: string) => {
     if (selectionMode === 'single') {
       // In single selection mode, just select this one slot
@@ -537,49 +539,51 @@ const Booking = () => {
                       </div>
                     )}
                     
-                    <div className="border rounded-md max-h-60 overflow-y-auto">
-                      {isLoadingSlots ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                          <span className="text-sm text-gray-500">Loading available slots...</span>
-                        </div>
-                      ) : (
-                        <div className="p-2">
-                          {date && pitchType ? (
-                            generateTimeSlots().map((slot) => {
-                              const isBooked = bookedSlots.includes(slot);
-                              const isSelected = selectedTimeSlots.includes(slot);
-                              
-                              return (
-                                <div 
-                                  key={`slot-${slot.replace(/\s+/g, '-')}-${Math.random().toString(36).substring(7)}`}
-                                  className={`
-                                    flex items-center p-2 mb-1 rounded-md cursor-pointer
-                                    ${isBooked ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 
-                                      isSelected ? 'bg-cricket-green bg-opacity-20 border border-cricket-green' : 
-                                      'hover:bg-gray-100'}
-                                  `}
-                                  onClick={() => !isBooked && handleTimeSlotToggle(slot)}
-                                >
-                                  <Checkbox 
-                                    checked={isSelected}
-                                    disabled={isBooked}
-                                    className="mr-3"
-                                    onCheckedChange={() => !isBooked && handleTimeSlotToggle(slot)}
-                                  />
-                                  <span className={isSelected ? 'font-medium' : ''}>
-                                    {slot} {isBooked && <span className="text-gray-500">(Booked)</span>}
-                                  </span>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div className="p-4 text-center text-gray-500">
-                              Please select a date and pitch type first
-                            </div>
-                          )}
-                        </div>
-                      )}
+                    <div className="border rounded-md" ref={timeSlotsScrollRef}>
+                      <ScrollArea className="h-60">
+                        {isLoadingSlots ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                            <span className="text-sm text-gray-500">Loading available slots...</span>
+                          </div>
+                        ) : (
+                          <div className="p-2">
+                            {date && pitchType ? (
+                              generateTimeSlots().map((slot) => {
+                                const isBooked = bookedSlots.includes(slot);
+                                const isSelected = selectedTimeSlots.includes(slot);
+                                
+                                return (
+                                  <div 
+                                    key={`slot-${slot.replace(/\s+/g, '-')}-${Math.random().toString(36).substring(7)}`}
+                                    className={`
+                                      flex items-center p-2 mb-1 rounded-md cursor-pointer
+                                      ${isBooked ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 
+                                        isSelected ? 'bg-cricket-green bg-opacity-20 border border-cricket-green' : 
+                                        'hover:bg-gray-100'}
+                                    `}
+                                    onClick={() => !isBooked && handleTimeSlotToggle(slot)}
+                                  >
+                                    <Checkbox 
+                                      checked={isSelected}
+                                      disabled={isBooked}
+                                      className="mr-3"
+                                      onCheckedChange={() => !isBooked && handleTimeSlotToggle(slot)}
+                                    />
+                                    <span className={isSelected ? 'font-medium' : ''}>
+                                      {slot} {isBooked && <span className="text-gray-500">(Booked)</span>}
+                                    </span>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div className="p-4 text-center text-gray-500">
+                                Please select a date and pitch type first
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </ScrollArea>
                     </div>
                   </div>
                   
