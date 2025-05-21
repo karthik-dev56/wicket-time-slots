@@ -145,7 +145,19 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/#membership-plans`,
       locale: 'en', // Use English language
       billing_address_collection: 'auto', // Collect billing address
-      // Remove default_country parameter
+      // Use the payment_method_options to set the default country to Australia
+      payment_method_options: {
+        card: {
+          setup_future_usage: 'off' // Needed to set payment_method_options without error
+        }
+      },
+      payment_method_data: {
+        billing_details: {
+          address: {
+            country: 'AU'
+          }
+        }
+      },
       metadata: {
         user_id: user.id,
         plan_type: planType
