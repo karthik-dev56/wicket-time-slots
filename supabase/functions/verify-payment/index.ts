@@ -15,7 +15,7 @@ serve(async (req) => {
 
   try {
     // Get request body with all booking details
-    const { sessionId, pitchType, date, timeSlot, price } = await req.json();
+    const { sessionId, pitchType, date, timeSlots, price } = await req.json();
     
     if (!sessionId) {
       return new Response(
@@ -50,31 +50,36 @@ serve(async (req) => {
       );
     }
 
-    // Check if the time slot is already booked
-    const { data: existingBookings, error: bookingCheckError } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("date", date)
-      .eq("time", timeSlot)
-      .eq("pitch_type", pitchType)
-      .eq("status", "upcoming");
-      
-    if (bookingCheckError) {
-      console.error("Error checking existing bookings:", bookingCheckError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to check availability" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-      );
-    }
+    // Check if any of the time slots are already booked
+    // If timeSlots is an array, check each slot; otherwise, just check the single timeSlot value
+    const slotsToCheck = Array.isArray(timeSlots) ? timeSlots : [timeSlots];
     
-    if (existingBookings && existingBookings.length > 0) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "This time slot has been booked by someone else. Please select a different time."
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
-      );
+    for (const timeSlot of slotsToCheck) {
+      const { data: existingBookings, error: bookingCheckError } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("date", date)
+        .eq("time", timeSlot)
+        .eq("pitch_type", pitchType)
+        .eq("status", "upcoming");
+        
+      if (bookingCheckError) {
+        console.error("Error checking existing bookings:", bookingCheckError);
+        return new Response(
+          JSON.stringify({ success: false, error: "Failed to check availability" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+      
+      if (existingBookings && existingBookings.length > 0) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `The time slot "${timeSlot}" has been booked by someone else. Please select a different time.`
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
+        );
+      }
     }
 
     // In production, you would verify with Stripe using the Stripe API
@@ -82,23 +87,28 @@ serve(async (req) => {
     const bookingMetadata = {
       pitchType: pitchType || "Bowling Machine Lane",
       date: date || new Date().toISOString().split("T")[0],
-      timeSlot: timeSlot || "3:00 PM - 3:30 PM",
+      timeSlots: slotsToCheck,
       userId: user.id,
       price: price || 45.00
     };
 
     console.log("Booking data received:", bookingMetadata);
 
-    // Store booking in database
-    const { data: bookingData, error: bookingError } = await supabase.from("bookings").insert({
+    // Store bookings in database (one entry per time slot)
+    const bookingEntries = slotsToCheck.map(timeSlot => ({
       user_id: user.id,
       pitch_type: bookingMetadata.pitchType,
       date: bookingMetadata.date,
-      time: bookingMetadata.timeSlot,
-      price: bookingMetadata.price,
+      time: timeSlot,
+      price: bookingMetadata.price / slotsToCheck.length, // Divide price among slots
       booking_date: new Date().toISOString(),
       status: 'upcoming'
-    }).select();
+    }));
+    
+    const { data: bookingData, error: bookingError } = await supabase
+      .from("bookings")
+      .insert(bookingEntries)
+      .select();
 
     if (bookingError) {
       console.error("Error storing booking:", bookingError);
@@ -113,7 +123,7 @@ serve(async (req) => {
         success: true,
         status: "Complete",
         metadata: bookingMetadata,
-        booking: bookingData?.[0] || null
+        bookings: bookingData || []
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

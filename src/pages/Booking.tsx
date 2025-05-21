@@ -10,8 +10,10 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // Define price mapping
 const PRICES = {
@@ -23,7 +25,7 @@ const PRICES = {
 const Booking = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [pitchType, setPitchType] = useState<string>("");
-  const [timeSlot, setTimeSlot] = useState<string>("");
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
   const [players, setPlayers] = useState<number>(1);
   const [isEarlyBird, setIsEarlyBird] = useState<boolean>(false);
   const [isWeekendPackage, setIsWeekendPackage] = useState<boolean>(false);
@@ -34,6 +36,7 @@ const Booking = () => {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
   const { toast } = useToast();
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
 
   // Check membership status when component mounts
   useEffect(() => {
@@ -103,21 +106,30 @@ const Booking = () => {
     fetchBookedSlots();
   }, [date, pitchType, toast]);
 
+  // Reset selected time slots when changing date or pitch type
+  useEffect(() => {
+    setSelectedTimeSlots([]);
+  }, [date, pitchType]);
+
   // Check if the selected time is eligible for early bird discount
   useEffect(() => {
-    if (date && timeSlot) {
+    if (date && selectedTimeSlots.length > 0) {
       const dayOfWeek = date.getDay();
       const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
       
-      const hourStr = timeSlot.split(':')[0].trim();
-      const hour = parseInt(hourStr);
-      const isPM = timeSlot.includes('PM');
-      const is24Hour = isPM && hour !== 12 ? hour + 12 : hour === 12 && !isPM ? 0 : hour;
+      // Check if any selected slot is before 4 PM
+      const hasEarlySlot = selectedTimeSlots.some(slot => {
+        const hourStr = slot.split(':')[0].trim();
+        const hour = parseInt(hourStr);
+        const isPM = slot.includes('PM');
+        const is24Hour = isPM && hour !== 12 ? hour + 12 : hour === 12 && !isPM ? 0 : hour;
+        return is24Hour < 16; // Before 4 PM
+      });
       
       // Early bird discount applies before 4 PM on weekdays
-      setIsEarlyBird(isWeekday && is24Hour < 16);
+      setIsEarlyBird(isWeekday && hasEarlySlot);
     }
-  }, [date, timeSlot]);
+  }, [date, selectedTimeSlots]);
 
   // Automatically enable weekend package option for normal lanes on weekends
   useEffect(() => {
@@ -135,13 +147,13 @@ const Booking = () => {
     if (bookingError) {
       setBookingError("");
     }
-  }, [date, pitchType, timeSlot, bookingError]);
+  }, [date, pitchType, selectedTimeSlots, bookingError]);
 
   const validateBooking = () => {
-    if (!date || !pitchType || !timeSlot) {
+    if (!date || !pitchType || selectedTimeSlots.length === 0) {
       toast({
         title: "Please complete all fields",
-        description: "You need to select a date, pitch type, and time slot.",
+        description: "You need to select a date, pitch type, and at least one time slot.",
         variant: "destructive"
       });
       return false;
@@ -169,7 +181,7 @@ const Booking = () => {
           pitchType, // Send the raw pitch type value (bowlingMachine, normalLane, coaching)
           pitchTypeName, // Also send the formatted pitch type name
           date: formattedDate,
-          timeSlot,
+          timeSlots: selectedTimeSlots,
           players,
           isEarlyBird,
           isWeekendPackage,
@@ -245,11 +257,50 @@ const Booking = () => {
     return slots;
   };
 
+  const handleTimeSlotToggle = (slot: string) => {
+    setSelectedTimeSlots(prev => {
+      if (selectionMode === 'single') {
+        return [slot];
+      } else {
+        // In multiple selection mode
+        if (prev.includes(slot)) {
+          return prev.filter(s => s !== slot);
+        } else {
+          // Check if slots are consecutive when adding a new one
+          const allSlots = generateTimeSlots();
+          const slotIndices = [...prev, slot].map(s => allSlots.indexOf(s));
+          const sortedIndices = [...slotIndices].sort((a, b) => a - b);
+          
+          // Check if indices are consecutive
+          for (let i = 0; i < sortedIndices.length - 1; i++) {
+            if (sortedIndices[i + 1] - sortedIndices[i] !== 1) {
+              toast({
+                title: "Invalid Selection",
+                description: "Please select consecutive time slots only.",
+                variant: "destructive"
+              });
+              return prev;
+            }
+          }
+          return [...prev, slot].sort((a, b) => {
+            return allSlots.indexOf(a) - allSlots.indexOf(b);
+          });
+        }
+      }
+    });
+  };
+
+  const removeTimeSlot = (slot: string) => {
+    setSelectedTimeSlots(prev => prev.filter(s => s !== slot));
+  };
+
   // Calculate price with discounts
   const calculatePrice = () => {
     if (!pitchType) return "$0.00";
     
-    let price = PRICES[pitchType as keyof typeof PRICES] / 100;
+    let basePrice = PRICES[pitchType as keyof typeof PRICES] / 100;
+    // Multiply by number of time slots
+    let price = basePrice * selectedTimeSlots.length;
     
     // Apply membership discount if applicable
     if (membershipStatus?.active) {
@@ -276,7 +327,8 @@ const Booking = () => {
     }
     
     // For premium members, check if this is their free weekly hour
-    if (membershipStatus?.active && membershipStatus.membershipType === 'premium' && pitchType === 'normalLane') {
+    if (membershipStatus?.active && membershipStatus.membershipType === 'premium' && 
+        pitchType === 'normalLane' && selectedTimeSlots.length === 2) {
       // In a real app, we would check if they've used their free hour this week
       // For now, let's assume they haven't
       const hasFreeHourAvailable = true;
@@ -329,7 +381,7 @@ const Booking = () => {
                     <Label htmlFor="pitch-type">Pitch Type</Label>
                     <Select value={pitchType} onValueChange={(value) => {
                       setPitchType(value);
-                      setTimeSlot(""); // Reset time slot when pitch type changes
+                      setSelectedTimeSlots([]); // Reset time slot when pitch type changes
                     }}>
                       <SelectTrigger id="pitch-type">
                         <SelectValue placeholder="Select a pitch type" />
@@ -350,7 +402,7 @@ const Booking = () => {
                         selected={date}
                         onSelect={(newDate) => {
                           setDate(newDate);
-                          setTimeSlot(""); // Reset time slot when date changes
+                          setSelectedTimeSlots([]); // Reset time slot when date changes
                         }}
                         disabled={(date) => {
                           // Disable dates in the past
@@ -367,39 +419,95 @@ const Booking = () => {
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="time-slot">Time Slot (30-minute intervals)</Label>
-                    <Select value={timeSlot} onValueChange={setTimeSlot} disabled={!date || !pitchType || isLoadingSlots}>
-                      <SelectTrigger id="time-slot">
-                        <SelectValue placeholder={isLoadingSlots ? "Loading available slots..." : "Select a time slot"} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {date && pitchType && generateTimeSlots().map((slot) => {
-                          const isBooked = bookedSlots.includes(slot);
-                          return (
-                            <SelectItem 
-                              key={slot} 
-                              value={slot} 
-                              disabled={isBooked}
-                              className={isBooked ? "opacity-50 line-through" : ""}
-                            >
-                              {slot} {isBooked ? "(Booked)" : ""}
-                            </SelectItem>
-                          );
-                        })}
-                        {(!date || !pitchType) && (
-                          <SelectItem value="placeholder" disabled>
-                            Please select a date and pitch type first
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {isLoadingSlots && (
-                      <div className="flex items-center justify-center py-2">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        <span className="text-sm text-gray-500">Loading available slots...</span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="time-slot">Time Slot Selection</Label>
+                      <RadioGroup 
+                        value={selectionMode} 
+                        onValueChange={(value) => {
+                          setSelectionMode(value as 'single' | 'multiple');
+                          setSelectedTimeSlots([]);
+                        }}
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="single" id="single" />
+                          <Label htmlFor="single" className="cursor-pointer">Single</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="multiple" id="multiple" />
+                          <Label htmlFor="multiple" className="cursor-pointer">Multiple</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    {selectionMode === 'multiple' && (
+                      <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-md border border-blue-200">
+                        <p>You can select multiple consecutive time slots for longer sessions.</p>
                       </div>
                     )}
+                    
+                    {selectedTimeSlots.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {selectedTimeSlots.map((slot) => (
+                          <Badge key={slot} variant="secondary" className="flex items-center gap-1">
+                            {slot}
+                            <button 
+                              type="button"
+                              onClick={() => removeTimeSlot(slot)} 
+                              className="ml-1 rounded-full hover:bg-gray-200 p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="border rounded-md max-h-60 overflow-y-auto">
+                      {isLoadingSlots ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          <span className="text-sm text-gray-500">Loading available slots...</span>
+                        </div>
+                      ) : (
+                        <div className="p-2">
+                          {date && pitchType ? (
+                            generateTimeSlots().map((slot) => {
+                              const isBooked = bookedSlots.includes(slot);
+                              const isSelected = selectedTimeSlots.includes(slot);
+                              
+                              return (
+                                <div 
+                                  key={slot}
+                                  className={`
+                                    flex items-center p-2 mb-1 rounded-md cursor-pointer
+                                    ${isBooked ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 
+                                      isSelected ? 'bg-cricket-green bg-opacity-20 border border-cricket-green' : 
+                                      'hover:bg-gray-100'}
+                                  `}
+                                  onClick={() => !isBooked && handleTimeSlotToggle(slot)}
+                                >
+                                  <Checkbox 
+                                    checked={isSelected}
+                                    disabled={isBooked}
+                                    className="mr-3"
+                                    onCheckedChange={() => !isBooked && handleTimeSlotToggle(slot)}
+                                  />
+                                  <span className={isSelected ? 'font-medium' : ''}>
+                                    {slot} {isBooked && <span className="text-gray-500">(Booked)</span>}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="p-4 text-center text-gray-500">
+                              Please select a date and pitch type first
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -478,7 +586,7 @@ const Booking = () => {
                   <Button 
                     className="w-full bg-cricket-green hover:bg-cricket-green-light" 
                     onClick={handleBookingSubmit}
-                    disabled={isLoading || isFetchingMembership || !date || !pitchType || !timeSlot}
+                    disabled={isLoading || isFetchingMembership || !date || !pitchType || selectedTimeSlots.length === 0}
                   >
                     {isLoading ? (
                       <>
@@ -520,10 +628,19 @@ const Booking = () => {
                   </div>
                   
                   <div className="border-b pb-4">
-                    <p className="text-sm text-gray-500">Time Slot</p>
-                    <p className="font-medium">
-                      {timeSlot || 'No time slot selected'}
-                    </p>
+                    <p className="text-sm text-gray-500">Selected Time Slots</p>
+                    {selectedTimeSlots.length > 0 ? (
+                      <div className="mt-1 space-y-1">
+                        {selectedTimeSlots.map(slot => (
+                          <p key={slot} className="font-medium">{slot}</p>
+                        ))}
+                        <p className="text-sm text-gray-600 mt-1">
+                          Total duration: {selectedTimeSlots.length * 30} minutes
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="font-medium">No time slots selected</p>
+                    )}
                   </div>
                   
                   <div className="border-b pb-4">
@@ -549,7 +666,7 @@ const Booking = () => {
                           {membershipStatus?.active && (
                             <li>
                               {membershipStatus.discount}% {membershipStatus.membershipType.charAt(0).toUpperCase() + membershipStatus.membershipType.slice(1)} Membership Discount
-                              {membershipStatus.membershipType === 'premium' && pitchType === 'normalLane' && 
+                              {membershipStatus.membershipType === 'premium' && pitchType === 'normalLane' && selectedTimeSlots.length === 2 && 
                                 " (or free hour if available)"}
                             </li>
                           )}

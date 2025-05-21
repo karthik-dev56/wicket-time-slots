@@ -36,7 +36,7 @@ serve(async (req) => {
       pitchType, 
       pitchTypeName,
       date, 
-      timeSlot, 
+      timeSlots, 
       players, 
       isEarlyBird, 
       isWeekendPackage,
@@ -45,9 +45,14 @@ serve(async (req) => {
     } = await req.json();
     
     console.log("Received request with pitchType:", pitchType);
+    console.log("Received timeSlots:", timeSlots);
     
     if (!pitchType || !PRICES[pitchType]) {
       throw new Error("Invalid pitch type selected");
+    }
+    
+    if (!timeSlots || (Array.isArray(timeSlots) && timeSlots.length === 0)) {
+      throw new Error("No time slots selected");
     }
 
     // Initialize Stripe with secret key from environment
@@ -58,21 +63,28 @@ serve(async (req) => {
     // Get the price amount for the selected pitch type
     let priceAmount = PRICES[pitchType];
     
+    // If multiple time slots are selected, multiply the price
+    const slots = Array.isArray(timeSlots) ? timeSlots : [timeSlots];
+    let totalSlots = slots.length;
+    
+    // Adjust for weekend package (fixed price regardless of slots)
+    let basePrice = totalSlots * priceAmount;
+    
     // Format the pitch name for display
     let pitchName = pitchTypeName || "Cricket Pitch";
     
     // Apply discounts if applicable
-    let description = `Booking for ${date} at ${timeSlot}`;
+    let description = `Booking for ${date} with ${totalSlots} time slot${totalSlots > 1 ? 's' : ''}: ${slots.join(', ')}`;
     let discountsApplied = [];
     
     // Check if premium member is using their free hour
     let isFreeHour = false;
-    if (membershipType === "premium" && pitchType === "normalLane") {
+    if (membershipType === "premium" && pitchType === "normalLane" && totalSlots === 2) {
       // In a real app, we'd check if they've used their free hour this week
       // For now, we'll assume they haven't
       const hasFreeHourAvailable = true;
       if (hasFreeHourAvailable) {
-        priceAmount = 0;
+        basePrice = 0;
         isFreeHour = true;
         discountsApplied.push("Premium member free hour");
         description += " (Premium member free hour)";
@@ -81,35 +93,32 @@ serve(async (req) => {
     
     // Only apply other discounts if it's not a free hour
     if (!isFreeHour) {
-      // Apply membership discount if applicable
-      if (membershipType && membershipDiscount) {
-        // For basic membership, don't apply discount to bowling machine
-        if (!(membershipType === "basic" && pitchType === "bowlingMachine")) {
-          const discountRate = membershipDiscount / 100;
-          const originalPrice = priceAmount;
-          priceAmount = Math.round(priceAmount * (1 - discountRate));
-          discountsApplied.push(`${membershipType} membership: ${membershipDiscount}% off`);
-        }
-      }
-
-      // Apply group discount if 5+ players
-      if (players && players >= 5) {
-        const originalPrice = priceAmount;
-        priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.groupDiscount));
-        discountsApplied.push("Group discount: 10% off");
-      }
-      
-      // Apply early bird discount if applicable (before 4 PM on weekdays)
-      if (isEarlyBird) {
-        const originalPrice = priceAmount;
-        priceAmount = Math.round(priceAmount * (1 - DISCOUNTS.earlyBird));
-        discountsApplied.push("Early bird: 15% off");
-      }
-      
-      // Apply weekend package if selected
+      // Apply weekend package if selected (fixed price regardless of slots)
       if (isWeekendPackage && pitchType === "normalLane") {
-        priceAmount = DISCOUNTS.weekend;
+        basePrice = DISCOUNTS.weekend;
         discountsApplied.push("Weekend Family Package: 2 hours for $70");
+      } else {
+        // Apply membership discount if applicable
+        if (membershipType && membershipDiscount) {
+          // For basic membership, don't apply discount to bowling machine
+          if (!(membershipType === "basic" && pitchType === "bowlingMachine")) {
+            const discountRate = membershipDiscount / 100;
+            basePrice = Math.round(basePrice * (1 - discountRate));
+            discountsApplied.push(`${membershipType} membership: ${membershipDiscount}% off`);
+          }
+        }
+
+        // Apply group discount if 5+ players
+        if (players && players >= 5) {
+          basePrice = Math.round(basePrice * (1 - DISCOUNTS.groupDiscount));
+          discountsApplied.push("Group discount: 10% off");
+        }
+        
+        // Apply early bird discount if applicable (before 4 PM on weekdays)
+        if (isEarlyBird) {
+          basePrice = Math.round(basePrice * (1 - DISCOUNTS.earlyBird));
+          discountsApplied.push("Early bird: 15% off");
+        }
       }
     }
     
@@ -128,20 +137,20 @@ serve(async (req) => {
               name: pitchName,
               description: description,
             },
-            unit_amount: priceAmount,
+            unit_amount: basePrice,
           },
           quantity: 1,
         },
       ],
       mode: "payment",
       // Add booking details to the success URL
-      success_url: `${req.headers.get("origin")}/booking-success?session_id={CHECKOUT_SESSION_ID}&pitchType=${encodeURIComponent(pitchTypeName || pitchName)}&date=${encodeURIComponent(date)}&timeSlot=${encodeURIComponent(timeSlot)}&price=${priceAmount/100}`,
+      success_url: `${req.headers.get("origin")}/booking-success?session_id={CHECKOUT_SESSION_ID}&pitchType=${encodeURIComponent(pitchTypeName || pitchName)}&date=${encodeURIComponent(date)}&timeSlots=${encodeURIComponent(JSON.stringify(slots))}&price=${basePrice/100}`,
       cancel_url: `${req.headers.get("origin")}/booking`,
       metadata: {
         pitchType,
         pitchTypeName: pitchTypeName || pitchName,
         date,
-        timeSlot,
+        timeSlots: JSON.stringify(slots),
         players: players?.toString() || "1",
         isEarlyBird: isEarlyBird ? "true" : "false",
         isWeekendPackage: isWeekendPackage ? "true" : "false",
