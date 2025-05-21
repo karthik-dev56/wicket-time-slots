@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -257,50 +256,51 @@ const Booking = () => {
     return slots;
   };
 
+  // Fixed handleTimeSlotToggle function to properly handle multiple selection
   const handleTimeSlotToggle = (slot: string) => {
     if (selectionMode === 'single') {
       // In single selection mode, just select this one slot
       setSelectedTimeSlots([slot]);
     } else {
       // In multiple selection mode
-      setSelectedTimeSlots(prev => {
+      if (selectedTimeSlots.includes(slot)) {
         // If slot is already selected, remove it
-        if (prev.includes(slot)) {
-          return prev.filter(s => s !== slot);
+        setSelectedTimeSlots(prev => prev.filter(s => s !== slot));
+      } else {
+        // When adding a new slot
+        const allSlots = generateTimeSlots();
+        const slotIndex = allSlots.indexOf(slot);
+        
+        if (selectedTimeSlots.length === 0) {
+          // First selection is always valid
+          setSelectedTimeSlots([slot]);
         } else {
-          // When adding a new slot
-          const allSlots = generateTimeSlots();
+          // Find the min and max indices of currently selected slots
+          const currentIndices = selectedTimeSlots.map(s => allSlots.indexOf(s));
+          const minSelectedIndex = Math.min(...currentIndices);
+          const maxSelectedIndex = Math.max(...currentIndices);
           
-          // Get indices of currently selected slots plus the new one
-          const currentIndices = prev.map(s => allSlots.indexOf(s));
-          const newSlotIndex = allSlots.indexOf(slot);
-          const allIndices = [...currentIndices, newSlotIndex];
-          
-          // Check if we can add this slot (must be consecutive)
-          if (prev.length === 0) {
-            // First selection is always valid
-            return [slot];
-          }
-          
-          // Find min and max indices to check if they form a consecutive range
-          const minIndex = Math.min(...allIndices);
-          const maxIndex = Math.max(...allIndices);
-          
-          // Check if the range is consecutive (max-min+1 should equal the number of slots)
-          if (maxIndex - minIndex + 1 === allIndices.length) {
-            // Sort time slots by their position in the day
-            return allSlots.slice(minIndex, maxIndex + 1);
+          // Check if new slot is adjacent to the current selection range
+          if (slotIndex === minSelectedIndex - 1 || slotIndex === maxSelectedIndex + 1) {
+            // Adjacent slot, add it
+            setSelectedTimeSlots(prev => [...prev, slot].sort((a, b) => 
+              allSlots.indexOf(a) - allSlots.indexOf(b)
+            ));
+          } else if (slotIndex > minSelectedIndex && slotIndex < maxSelectedIndex) {
+            // Slot is within the current range but not selected (gap filling)
+            setSelectedTimeSlots(prev => [...prev, slot].sort((a, b) => 
+              allSlots.indexOf(a) - allSlots.indexOf(b)
+            ));
           } else {
-            // Not consecutive, show warning
+            // Not adjacent, show warning
             toast({
               title: "Invalid Selection",
               description: "Please select consecutive time slots only.",
               variant: "destructive"
             });
-            return prev;
           }
         }
-      });
+      }
     }
   };
 
@@ -318,39 +318,38 @@ const Booking = () => {
         }
         
         // Check if remaining slots are still consecutive
-        const indices = remainingSlots.map(s => allSlots.indexOf(s));
-        const minIndex = Math.min(...indices);
-        const maxIndex = Math.max(...indices);
+        const slotIndices = remainingSlots.map(s => allSlots.indexOf(s));
+        const minIndex = Math.min(...slotIndices);
+        const maxIndex = Math.max(...slotIndices);
         
-        if (maxIndex - minIndex + 1 === remainingSlots.length) {
+        // Check if there are any gaps in the sequence
+        const expectedLength = maxIndex - minIndex + 1;
+        if (expectedLength === remainingSlots.length) {
+          // No gaps, we're good
           return remainingSlots;
         } else {
-          // If removing creates a gap, find the largest consecutive block
-          const slotGroups = [];
-          let currentGroup = [remainingSlots[0]];
+          // If removing creates gaps, find the largest consecutive block
+          // Sort the indices in ascending order
+          slotIndices.sort((a, b) => a - b);
           
-          for (let i = 1; i < remainingSlots.length; i++) {
-            const currentIndex = allSlots.indexOf(remainingSlots[i-1]);
-            const nextIndex = allSlots.indexOf(remainingSlots[i]);
-            
-            if (nextIndex - currentIndex === 1) {
-              // Consecutive, add to current group
-              currentGroup.push(remainingSlots[i]);
+          // Find the largest consecutive sequence
+          let currentSequence = [remainingSlots[slotIndices.indexOf(slotIndices[0])]];
+          let longestSequence = [...currentSequence];
+          
+          for (let i = 1; i < slotIndices.length; i++) {
+            if (slotIndices[i] === slotIndices[i-1] + 1) {
+              // Consecutive, add to current sequence
+              currentSequence.push(remainingSlots[slotIndices.indexOf(slotIndices[i])]);
+              if (currentSequence.length > longestSequence.length) {
+                longestSequence = [...currentSequence];
+              }
             } else {
-              // Gap found, start new group
-              slotGroups.push([...currentGroup]);
-              currentGroup = [remainingSlots[i]];
+              // Gap found, start new sequence
+              currentSequence = [remainingSlots[slotIndices.indexOf(slotIndices[i])]];
             }
           }
           
-          // Add the last group
-          slotGroups.push(currentGroup);
-          
-          // Find largest group
-          const largestGroup = slotGroups.reduce((max, group) => 
-            group.length > max.length ? group : max, []);
-          
-          return largestGroup;
+          return longestSequence;
         }
       } else {
         // In single mode, just remove the slot
