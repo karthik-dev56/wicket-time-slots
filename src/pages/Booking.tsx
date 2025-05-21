@@ -37,6 +37,8 @@ const Booking = () => {
   const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
   const { toast } = useToast();
   const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('single');
+  
+  const [scrollPosition, setScrollPosition] = useState(0);
   const timeSlotsScrollRef = useRef<HTMLDivElement>(null);
 
   // Check membership status when component mounts
@@ -150,6 +152,16 @@ const Booking = () => {
     }
   }, [date, pitchType, selectedTimeSlots, bookingError]);
 
+  // Restore scroll position after time slot selection
+  useEffect(() => {
+    if (timeSlotsScrollRef.current) {
+      const scrollContainer = timeSlotsScrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollContainer && scrollPosition > 0) {
+        scrollContainer.scrollTop = scrollPosition;
+      }
+    }
+  }, [selectedTimeSlots, scrollPosition]);
+
   const validateBooking = () => {
     if (!date || !pitchType || selectedTimeSlots.length === 0) {
       toast({
@@ -262,6 +274,14 @@ const Booking = () => {
 
   // Updated handleTimeSlotToggle function with scroll position preservation
   const handleTimeSlotToggle = (slot: string) => {
+    // Save current scroll position before modifying state
+    if (timeSlotsScrollRef.current) {
+      const scrollContainer = timeSlotsScrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollContainer) {
+        setScrollPosition(scrollContainer.scrollTop);
+      }
+    }
+    
     if (selectionMode === 'single') {
       // In single selection mode, just select this one slot
       setSelectedTimeSlots([slot]);
@@ -312,8 +332,16 @@ const Booking = () => {
     }
   };
 
-  // Updated removeTimeSlot function to ensure proper state update
+  // Updated removeTimeSlot function to preserve scroll position
   const removeTimeSlot = (slotToRemove: string) => {
+    // Save current scroll position before modifying state
+    if (timeSlotsScrollRef.current) {
+      const scrollContainer = timeSlotsScrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollContainer) {
+        setScrollPosition(scrollContainer.scrollTop);
+      }
+    }
+    
     setSelectedTimeSlots(prev => {
       // First, remove the slot regardless of mode
       const filteredSlots = prev.filter(s => s !== slotToRemove);
