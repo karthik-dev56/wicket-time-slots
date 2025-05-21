@@ -7,6 +7,7 @@ import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 const BookingSuccess = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +16,7 @@ const BookingSuccess = () => {
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [verificationError, setVerificationError] = useState('');
   const location = useLocation();
+  const { toast } = useToast();
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -26,7 +28,20 @@ const BookingSuccess = () => {
         // Get booking details from URL query parameters if they exist
         const pitchType = queryParams.get('pitchType');
         const date = queryParams.get('date');
-        const timeSlot = queryParams.get('timeSlot');
+        
+        // Get timeSlot(s) - could be single or multiple
+        const timeSlotParam = queryParams.get('timeSlot');
+        let timeSlots = [];
+        
+        if (timeSlotParam) {
+          // If it's a comma-separated string, split it
+          if (timeSlotParam.includes(',')) {
+            timeSlots = timeSlotParam.split(',');
+          } else {
+            timeSlots = [timeSlotParam];
+          }
+        }
+        
         const price = queryParams.get('price') ? parseFloat(queryParams.get('price')!) : undefined;
         
         if (!sessionId) {
@@ -41,7 +56,7 @@ const BookingSuccess = () => {
             sessionId,
             pitchType,
             date,
-            timeSlot,
+            timeSlots,
             price
           },
         });
@@ -53,6 +68,14 @@ const BookingSuccess = () => {
         setPaymentVerified(data.success);
         setPaymentStatus(data.status);
         setBookingDetails(data.metadata);
+        
+        if (data.success) {
+          toast({
+            title: "Booking Successful",
+            description: "Your cricket pitch has been booked successfully!",
+            variant: "default"
+          });
+        }
       } catch (error: any) {
         console.error('Verification error:', error);
         setVerificationError(error.message || 'Failed to verify payment');
@@ -62,7 +85,7 @@ const BookingSuccess = () => {
     };
     
     verifyPayment();
-  }, [location]);
+  }, [location, toast]);
 
   return (
     <Layout>
@@ -102,7 +125,12 @@ const BookingSuccess = () => {
                       <h3 className="font-medium mb-2">Booking Details:</h3>
                       <p><strong>Pitch Type:</strong> {bookingDetails.pitchType}</p>
                       <p><strong>Date:</strong> {bookingDetails.date}</p>
-                      <p><strong>Time:</strong> {bookingDetails.timeSlot}</p>
+                      <p><strong>Time Slots:</strong></p>
+                      <ul className="list-disc pl-5">
+                        {bookingDetails.timeSlots && bookingDetails.timeSlots.map((slot: string, index: number) => (
+                          <li key={`time-slot-${index}`}>{slot}</li>
+                        ))}
+                      </ul>
                       <p><strong>Payment Status:</strong> {paymentStatus}</p>
                     </div>
                   )}

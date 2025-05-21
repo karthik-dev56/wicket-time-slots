@@ -50,11 +50,19 @@ serve(async (req) => {
       );
     }
 
-    // Check if any of the time slots are already booked
-    // If timeSlots is an array, check each slot; otherwise, just check the single timeSlot value
-    const slotsToCheck = Array.isArray(timeSlots) ? timeSlots : [timeSlots];
+    // Ensure timeSlots is an array, even if a single string is passed
+    const timeSlotsArray = Array.isArray(timeSlots) ? timeSlots : timeSlots ? [timeSlots] : [];
     
-    for (const timeSlot of slotsToCheck) {
+    // Check if we have valid time slots
+    if (!timeSlotsArray.length) {
+      return new Response(
+        JSON.stringify({ success: false, error: "No time slots provided" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Check if any of the time slots are already booked
+    for (const timeSlot of timeSlotsArray) {
       const { data: existingBookings, error: bookingCheckError } = await supabase
         .from("bookings")
         .select("*")
@@ -87,7 +95,7 @@ serve(async (req) => {
     const bookingMetadata = {
       pitchType: pitchType || "Bowling Machine Lane",
       date: date || new Date().toISOString().split("T")[0],
-      timeSlots: slotsToCheck,
+      timeSlots: timeSlotsArray,
       userId: user.id,
       price: price || 45.00
     };
@@ -95,12 +103,12 @@ serve(async (req) => {
     console.log("Booking data received:", bookingMetadata);
 
     // Store bookings in database (one entry per time slot)
-    const bookingEntries = slotsToCheck.map(timeSlot => ({
+    const bookingEntries = timeSlotsArray.map(timeSlot => ({
       user_id: user.id,
       pitch_type: bookingMetadata.pitchType,
       date: bookingMetadata.date,
       time: timeSlot,
-      price: bookingMetadata.price / slotsToCheck.length, // Divide price among slots
+      price: bookingMetadata.price / timeSlotsArray.length, // Divide price among slots
       booking_date: new Date().toISOString(),
       status: 'upcoming'
     }));
