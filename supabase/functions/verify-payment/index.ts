@@ -35,6 +35,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     
     if (!authHeader) {
+      console.error("No authorization header");
       return new Response(
         JSON.stringify({ success: false, error: "No authorization header" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
@@ -44,10 +45,18 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
-    if (userError || !user) {
+    if (userError) {
       console.error("Auth error:", userError);
       return new Response(
         JSON.stringify({ success: false, error: "Unauthorized" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    
+    if (!user) {
+      console.error("No user found");
+      return new Response(
+        JSON.stringify({ success: false, error: "User not found" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
@@ -74,6 +83,7 @@ serve(async (req) => {
     
     // Check if we have valid time slots
     if (!timeSlotsArray.length) {
+      console.error("No time slots provided");
       return new Response(
         JSON.stringify({ success: false, error: "No time slots provided" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }

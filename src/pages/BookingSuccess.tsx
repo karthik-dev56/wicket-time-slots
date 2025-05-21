@@ -74,11 +74,16 @@ const BookingSuccess = () => {
         console.log("Verification response:", data, error);
         
         if (error) {
-          throw new Error(error.message);
+          console.error("Verification function error:", error);
+          throw new Error(error.message || "Error connecting to verification service");
+        }
+        
+        if (!data) {
+          throw new Error("No data returned from verification service");
         }
         
         setPaymentVerified(data.success);
-        setPaymentStatus(data.status);
+        setPaymentStatus(data.status || "Unknown");
         setBookingDetails(data.metadata);
         
         if (data.success) {
@@ -87,10 +92,18 @@ const BookingSuccess = () => {
             description: "Your cricket pitch has been booked successfully!",
             variant: "default"
           });
+        } else {
+          throw new Error(data.error || "Payment verification failed");
         }
       } catch (error: any) {
         console.error('Verification error:', error);
         setVerificationError(error.message || 'Failed to verify payment');
+        
+        toast({
+          title: "Verification Failed",
+          description: error.message || "Failed to verify payment",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
