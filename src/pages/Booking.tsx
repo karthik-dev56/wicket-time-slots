@@ -398,31 +398,39 @@ const Booking = () => {
     if (!pitchType) return "$0.00";
     
     let basePrice = PRICES[pitchType as keyof typeof PRICES] / 100;
-    // Multiply by number of time slots
-    let price = basePrice * selectedTimeSlots.length;
+    
+    // Calculate price based on time slots duration (30 min slots)
+    // Each slot is 30 minutes, so 2 slots = 1 hour
+    if (selectedTimeSlots.length % 2 === 0) {
+      // Even number of slots (complete hours)
+      basePrice = (selectedTimeSlots.length / 2) * basePrice;
+    } else {
+      // Odd number of slots (has a half hour)
+      basePrice = Math.floor(selectedTimeSlots.length / 2) * basePrice + (basePrice / 2);
+    }
     
     // Apply membership discount if applicable
     if (membershipStatus?.active) {
       if (membershipStatus.membershipType === 'premium' || 
           (membershipStatus.membershipType === 'basic' && pitchType !== 'bowlingMachine') ||
           (membershipStatus.membershipType === 'junior')) {
-        price = price * (1 - membershipStatus.discount / 100);
+        basePrice = basePrice * (1 - membershipStatus.discount / 100);
       }
     }
     
     // Apply group fee if 5+ players (10% extra)
     if (players >= 5) {
-      price = price * 1.1; // 10% extra
+      basePrice = basePrice * 1.1; // 10% extra
     }
     
     // Apply early bird discount if applicable
     if (isEarlyBird) {
-      price = price * 0.85; // 15% off
+      basePrice = basePrice * 0.85; // 15% off
     }
     
     // Apply weekend package if selected
     if (isWeekendPackage && pitchType === 'normalLane') {
-      price = 70; // Fixed $70 for weekend package
+      basePrice = 70; // Fixed $70 for weekend package
     }
     
     // For premium members, check if this is their free weekly hour
@@ -437,7 +445,7 @@ const Booking = () => {
       }
     }
     
-    return `$${price.toFixed(2)}`;
+    return `$${basePrice.toFixed(2)}`;
   };
 
   return (

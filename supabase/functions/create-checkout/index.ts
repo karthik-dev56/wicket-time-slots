@@ -63,12 +63,21 @@ serve(async (req) => {
     // Get the price amount for the selected pitch type
     let priceAmount = PRICES[pitchType];
     
-    // If multiple time slots are selected, multiply the price
+    // If multiple time slots are selected, calculate the price based on duration
     const slots = Array.isArray(timeSlots) ? timeSlots : [timeSlots];
     let totalSlots = slots.length;
     
-    // Adjust for weekend package (fixed price regardless of slots)
-    let basePrice = totalSlots * priceAmount;
+    // Calculate the actual hourly rate based on slot duration (30 min slots)
+    // Each slot is 30 minutes, so 2 slots = 1 hour
+    let basePrice;
+    
+    if (totalSlots % 2 === 0) {
+      // Even number of slots (complete hours)
+      basePrice = (totalSlots / 2) * priceAmount;
+    } else {
+      // Odd number of slots (has a half hour)
+      basePrice = Math.floor(totalSlots / 2) * priceAmount + (priceAmount / 2);
+    }
     
     // Format the pitch name for display
     let pitchName = pitchTypeName || "Cricket Pitch";
