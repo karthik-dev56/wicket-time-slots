@@ -145,7 +145,7 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/#membership-plans`,
       locale: 'en', // Use English language
       billing_address_collection: 'auto', // Collect billing address
-      default_country: 'AU', // Set Australia as the default country
+      // Remove default_country parameter
       metadata: {
         user_id: user.id,
         plan_type: planType
