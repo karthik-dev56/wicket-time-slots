@@ -151,17 +151,10 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/booking`,
       locale: 'en', // Use English language
       billing_address_collection: 'auto', // Collect billing address
-      // Use the payment_method_options to set the default country to Australia
-      payment_method_options: {
-        card: {
-          setup_future_usage: undefined // Needed to set payment_method_options without error
-        }
-      },
-      payment_method_data: {
-        billing_details: {
-          address: {
-            country: 'AU'
-          }
+      // Proper way to set Australia as default country
+      locale_info: {
+        billing_address: {
+          default_country: 'AU'
         }
       },
       metadata: {
