@@ -240,7 +240,8 @@ const Booking = () => {
       const halfHourStr = `${hour12}:30 ${isPM ? 'PM' : 'AM'}`;
       
       // For full hour slots (e.g., 1:00 PM - 1:30 PM)
-      slots.push(`${hourStr} - ${halfHourStr}`);
+      const fullHourSlot = `${hourStr} - ${halfHourStr}`;
+      slots.push(fullHourSlot);
       
       // For half hour slots (e.g., 1:30 PM - 2:00 PM)
       if (hour < endHour - 1) {
@@ -249,28 +250,29 @@ const Booking = () => {
         const nextHour12 = nextHour === 0 ? 12 : nextHour > 12 ? nextHour - 12 : nextHour;
         const nextHourStr = `${nextHour12}:00 ${nextIsPM ? 'PM' : 'AM'}`;
         
-        slots.push(`${halfHourStr} - ${nextHourStr}`);
+        const halfHourSlot = `${halfHourStr} - ${nextHourStr}`;
+        slots.push(halfHourSlot);
       }
     }
     
     return slots;
   };
 
-  // Fixed handleTimeSlotToggle function to properly handle multiple selection
+  // Updated handleTimeSlotToggle function to ensure unique slots and proper consecutive selection
   const handleTimeSlotToggle = (slot: string) => {
     if (selectionMode === 'single') {
       // In single selection mode, just select this one slot
       setSelectedTimeSlots([slot]);
     } else {
       // In multiple selection mode
+      const allSlots = generateTimeSlots();
+      const slotIndex = allSlots.indexOf(slot);
+      
       if (selectedTimeSlots.includes(slot)) {
         // If slot is already selected, remove it
         setSelectedTimeSlots(prev => prev.filter(s => s !== slot));
       } else {
         // When adding a new slot
-        const allSlots = generateTimeSlots();
-        const slotIndex = allSlots.indexOf(slot);
-        
         if (selectedTimeSlots.length === 0) {
           // First selection is always valid
           setSelectedTimeSlots([slot]);
@@ -318,38 +320,40 @@ const Booking = () => {
         }
         
         // Check if remaining slots are still consecutive
-        const slotIndices = remainingSlots.map(s => allSlots.indexOf(s));
-        const minIndex = Math.min(...slotIndices);
-        const maxIndex = Math.max(...slotIndices);
+        const slotIndices = remainingSlots.map(s => allSlots.indexOf(s)).sort((a, b) => a - b);
+        const minIndex = slotIndices[0];
+        const maxIndex = slotIndices[slotIndices.length - 1];
         
         // Check if there are any gaps in the sequence
         const expectedLength = maxIndex - minIndex + 1;
-        if (expectedLength === remainingSlots.length) {
+        if (expectedLength === slotIndices.length) {
           // No gaps, we're good
           return remainingSlots;
         } else {
           // If removing creates gaps, find the largest consecutive block
-          // Sort the indices in ascending order
-          slotIndices.sort((a, b) => a - b);
-          
-          // Find the largest consecutive sequence
-          let currentSequence = [remainingSlots[slotIndices.indexOf(slotIndices[0])]];
-          let longestSequence = [...currentSequence];
+          let currentStart = slotIndices[0];
+          let currentLength = 1;
+          let bestStart = currentStart;
+          let bestLength = currentLength;
           
           for (let i = 1; i < slotIndices.length; i++) {
             if (slotIndices[i] === slotIndices[i-1] + 1) {
-              // Consecutive, add to current sequence
-              currentSequence.push(remainingSlots[slotIndices.indexOf(slotIndices[i])]);
-              if (currentSequence.length > longestSequence.length) {
-                longestSequence = [...currentSequence];
+              // Consecutive, continue current sequence
+              currentLength++;
+              if (currentLength > bestLength) {
+                bestLength = currentLength;
+                bestStart = currentStart;
               }
             } else {
               // Gap found, start new sequence
-              currentSequence = [remainingSlots[slotIndices.indexOf(slotIndices[i])]];
+              currentStart = slotIndices[i];
+              currentLength = 1;
             }
           }
           
-          return longestSequence;
+          // Get the best consecutive block
+          const bestSlots = allSlots.slice(bestStart, bestStart + bestLength);
+          return remainingSlots.filter(s => bestSlots.includes(s));
         }
       } else {
         // In single mode, just remove the slot
@@ -513,8 +517,8 @@ const Booking = () => {
                     
                     {selectedTimeSlots.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {selectedTimeSlots.map((slot) => (
-                          <Badge key={slot} variant="secondary" className="flex items-center gap-1">
+                        {selectedTimeSlots.map((slot, index) => (
+                          <Badge key={`selected-${index}-${slot}`} variant="secondary" className="flex items-center gap-1">
                             {slot}
                             <button 
                               type="button"
@@ -537,13 +541,13 @@ const Booking = () => {
                       ) : (
                         <div className="p-2">
                           {date && pitchType ? (
-                            generateTimeSlots().map((slot) => {
+                            generateTimeSlots().map((slot, index) => {
                               const isBooked = bookedSlots.includes(slot);
                               const isSelected = selectedTimeSlots.includes(slot);
                               
                               return (
                                 <div 
-                                  key={slot}
+                                  key={`slot-${index}-${slot}`}
                                   className={`
                                     flex items-center p-2 mb-1 rounded-md cursor-pointer
                                     ${isBooked ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 
