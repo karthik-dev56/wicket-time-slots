@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -259,7 +258,7 @@ const Booking = () => {
     return slots;
   };
 
-  // Updated handleTimeSlotToggle function to ensure unique slots and proper consecutive selection
+  // Updated handleTimeSlotToggle function to ensure unique entries in the array
   const handleTimeSlotToggle = (slot: string) => {
     if (selectionMode === 'single') {
       // In single selection mode, just select this one slot
@@ -286,12 +285,16 @@ const Booking = () => {
           // Check if new slot is adjacent to the current selection range
           if (slotIndex === minSelectedIndex - 1 || slotIndex === maxSelectedIndex + 1) {
             // Adjacent slot, add it
-            setSelectedTimeSlots(prev => [...prev, slot].sort((a, b) => 
+            // Ensure we're adding unique slots by using Set
+            const updatedSlots = [...new Set([...selectedTimeSlots, slot])];
+            setSelectedTimeSlots(updatedSlots.sort((a, b) => 
               allSlots.indexOf(a) - allSlots.indexOf(b)
             ));
           } else if (slotIndex > minSelectedIndex && slotIndex < maxSelectedIndex) {
             // Slot is within the current range but not selected (gap filling)
-            setSelectedTimeSlots(prev => [...prev, slot].sort((a, b) => 
+            // Ensure we're adding unique slots by using Set
+            const updatedSlots = [...new Set([...selectedTimeSlots, slot])];
+            setSelectedTimeSlots(updatedSlots.sort((a, b) => 
               allSlots.indexOf(a) - allSlots.indexOf(b)
             ));
           } else {
@@ -307,31 +310,27 @@ const Booking = () => {
     }
   };
 
-  const removeTimeSlot = (slot: string) => {
+  // Updated removeTimeSlot function to ensure proper state update
+  const removeTimeSlot = (slotToRemove: string) => {
     setSelectedTimeSlots(prev => {
-      if (selectionMode === 'multiple') {
-        // In multiple mode, removing a slot might break consecutiveness
-        // We need to check if removing this slot creates a gap
+      // First, remove the slot regardless of mode
+      const filteredSlots = prev.filter(s => s !== slotToRemove);
+      
+      if (selectionMode === 'multiple' && filteredSlots.length > 1) {
+        // In multiple mode, we need to check if removing creates gaps
         const allSlots = generateTimeSlots();
-        const remainingSlots = prev.filter(s => s !== slot);
+        const slotIndices = filteredSlots.map(s => allSlots.indexOf(s)).sort((a, b) => a - b);
         
-        if (remainingSlots.length <= 1) {
-          // If 0 or 1 slot remains, it's fine
-          return remainingSlots;
-        }
-        
-        // Check if remaining slots are still consecutive
-        const slotIndices = remainingSlots.map(s => allSlots.indexOf(s)).sort((a, b) => a - b);
+        // Check if remaining slots are consecutive
         const minIndex = slotIndices[0];
         const maxIndex = slotIndices[slotIndices.length - 1];
-        
-        // Check if there are any gaps in the sequence
         const expectedLength = maxIndex - minIndex + 1;
+        
         if (expectedLength === slotIndices.length) {
-          // No gaps, we're good
-          return remainingSlots;
+          // No gaps, return filtered slots
+          return filteredSlots;
         } else {
-          // If removing creates gaps, find the largest consecutive block
+          // Find largest consecutive block
           let currentStart = slotIndices[0];
           let currentLength = 1;
           let bestStart = currentStart;
@@ -339,27 +338,28 @@ const Booking = () => {
           
           for (let i = 1; i < slotIndices.length; i++) {
             if (slotIndices[i] === slotIndices[i-1] + 1) {
-              // Consecutive, continue current sequence
+              // Consecutive
               currentLength++;
               if (currentLength > bestLength) {
                 bestLength = currentLength;
                 bestStart = currentStart;
               }
             } else {
-              // Gap found, start new sequence
+              // New sequence
               currentStart = slotIndices[i];
               currentLength = 1;
             }
           }
           
-          // Get the best consecutive block
-          const bestSlots = allSlots.slice(bestStart, bestStart + bestLength);
-          return remainingSlots.filter(s => bestSlots.includes(s));
+          // Get best consecutive block
+          const bestRange = allSlots.slice(bestStart, bestStart + bestLength);
+          // Only return slots that are in the best consecutive range
+          return filteredSlots.filter(s => bestRange.includes(s));
         }
-      } else {
-        // In single mode, just remove the slot
-        return prev.filter(s => s !== slot);
       }
+      
+      // For single mode or if we have 0-1 slots left, just return filtered slots
+      return filteredSlots;
     });
   };
 
@@ -518,10 +518,9 @@ const Booking = () => {
                     
                     {selectedTimeSlots.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {/* Fix: Use a unique identifier for each selected slot badge */}
                         {selectedTimeSlots.map((slot) => (
                           <Badge 
-                            key={`selected-${slot}`} 
+                            key={`selected-${slot.replace(/\s+/g, '-')}-${Math.random().toString(36).substring(7)}`} 
                             variant="secondary" 
                             className="flex items-center gap-1"
                           >
@@ -551,10 +550,9 @@ const Booking = () => {
                               const isBooked = bookedSlots.includes(slot);
                               const isSelected = selectedTimeSlots.includes(slot);
                               
-                              // Fix: Use the slot as part of the key to ensure uniqueness
                               return (
                                 <div 
-                                  key={`slot-${slot}`}
+                                  key={`slot-${slot.replace(/\s+/g, '-')}-${Math.random().toString(36).substring(7)}`}
                                   className={`
                                     flex items-center p-2 mb-1 rounded-md cursor-pointer
                                     ${isBooked ? 'opacity-50 bg-gray-100 cursor-not-allowed' : 
