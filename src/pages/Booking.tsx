@@ -258,40 +258,105 @@ const Booking = () => {
   };
 
   const handleTimeSlotToggle = (slot: string) => {
-    setSelectedTimeSlots(prev => {
-      if (selectionMode === 'single') {
-        return [slot];
-      } else {
-        // In multiple selection mode
+    if (selectionMode === 'single') {
+      // In single selection mode, just select this one slot
+      setSelectedTimeSlots([slot]);
+    } else {
+      // In multiple selection mode
+      setSelectedTimeSlots(prev => {
+        // If slot is already selected, remove it
         if (prev.includes(slot)) {
           return prev.filter(s => s !== slot);
         } else {
-          // Check if slots are consecutive when adding a new one
+          // When adding a new slot
           const allSlots = generateTimeSlots();
-          const slotIndices = [...prev, slot].map(s => allSlots.indexOf(s));
-          const sortedIndices = [...slotIndices].sort((a, b) => a - b);
           
-          // Check if indices are consecutive
-          for (let i = 0; i < sortedIndices.length - 1; i++) {
-            if (sortedIndices[i + 1] - sortedIndices[i] !== 1) {
-              toast({
-                title: "Invalid Selection",
-                description: "Please select consecutive time slots only.",
-                variant: "destructive"
-              });
-              return prev;
-            }
+          // Get indices of currently selected slots plus the new one
+          const currentIndices = prev.map(s => allSlots.indexOf(s));
+          const newSlotIndex = allSlots.indexOf(slot);
+          const allIndices = [...currentIndices, newSlotIndex];
+          
+          // Check if we can add this slot (must be consecutive)
+          if (prev.length === 0) {
+            // First selection is always valid
+            return [slot];
           }
-          return [...prev, slot].sort((a, b) => {
-            return allSlots.indexOf(a) - allSlots.indexOf(b);
-          });
+          
+          // Find min and max indices to check if they form a consecutive range
+          const minIndex = Math.min(...allIndices);
+          const maxIndex = Math.max(...allIndices);
+          
+          // Check if the range is consecutive (max-min+1 should equal the number of slots)
+          if (maxIndex - minIndex + 1 === allIndices.length) {
+            // Sort time slots by their position in the day
+            return allSlots.slice(minIndex, maxIndex + 1);
+          } else {
+            // Not consecutive, show warning
+            toast({
+              title: "Invalid Selection",
+              description: "Please select consecutive time slots only.",
+              variant: "destructive"
+            });
+            return prev;
+          }
         }
-      }
-    });
+      });
+    }
   };
 
   const removeTimeSlot = (slot: string) => {
-    setSelectedTimeSlots(prev => prev.filter(s => s !== slot));
+    setSelectedTimeSlots(prev => {
+      if (selectionMode === 'multiple') {
+        // In multiple mode, removing a slot might break consecutiveness
+        // We need to check if removing this slot creates a gap
+        const allSlots = generateTimeSlots();
+        const remainingSlots = prev.filter(s => s !== slot);
+        
+        if (remainingSlots.length <= 1) {
+          // If 0 or 1 slot remains, it's fine
+          return remainingSlots;
+        }
+        
+        // Check if remaining slots are still consecutive
+        const indices = remainingSlots.map(s => allSlots.indexOf(s));
+        const minIndex = Math.min(...indices);
+        const maxIndex = Math.max(...indices);
+        
+        if (maxIndex - minIndex + 1 === remainingSlots.length) {
+          return remainingSlots;
+        } else {
+          // If removing creates a gap, find the largest consecutive block
+          const slotGroups = [];
+          let currentGroup = [remainingSlots[0]];
+          
+          for (let i = 1; i < remainingSlots.length; i++) {
+            const currentIndex = allSlots.indexOf(remainingSlots[i-1]);
+            const nextIndex = allSlots.indexOf(remainingSlots[i]);
+            
+            if (nextIndex - currentIndex === 1) {
+              // Consecutive, add to current group
+              currentGroup.push(remainingSlots[i]);
+            } else {
+              // Gap found, start new group
+              slotGroups.push([...currentGroup]);
+              currentGroup = [remainingSlots[i]];
+            }
+          }
+          
+          // Add the last group
+          slotGroups.push(currentGroup);
+          
+          // Find largest group
+          const largestGroup = slotGroups.reduce((max, group) => 
+            group.length > max.length ? group : max, []);
+          
+          return largestGroup;
+        }
+      } else {
+        // In single mode, just remove the slot
+        return prev.filter(s => s !== slot);
+      }
+    });
   };
 
   // Calculate price with discounts
